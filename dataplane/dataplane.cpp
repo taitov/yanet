@@ -799,6 +799,9 @@ eResult cDataPlane::initGlobalBases()
 		}
 	}
 
+	/// XXX
+	neighbor_v4_ht = hugepage_create_dynamic<dataplane::hashtable_mod_spinlock_dynamic<dataplane::neighbor_v4_key, dataplane::neighbor_value, 16>>(0, 2048, neighbor_v4_ht_updater);
+
 	return result;
 }
 
@@ -828,6 +831,10 @@ eResult cDataPlane::initWorkers()
 
 		dataplane::base::generation base;
 		base.globalBase = globalBases[socket_id][currentGlobalBaseId];
+
+		/// XXX
+		base.neighbor_v4_ht = neighbor_v4_ht;
+		base.neighbor_v6_ht = neighbor_v6_ht;
 
 		eResult result = worker->init(coreId,
 		                              basePermanently,
@@ -979,6 +986,10 @@ eResult cDataPlane::initWorkers()
 				return eResult::invalidSocketId;
 			}
 			base.globalBase = iter->second[currentGlobalBaseId];
+
+			/// XXX
+			base.neighbor_v4_ht = neighbor_v4_ht;
+			base.neighbor_v6_ht = neighbor_v6_ht;
 		}
 
 		eResult result = worker->init(coreId,
@@ -1057,6 +1068,10 @@ eResult cDataPlane::initWorkers()
 				return eResult::invalidSocketId;
 			}
 			base.globalBase = iter->second[currentGlobalBaseId];
+
+			/// XXX
+			base.neighbor_v4_ht = neighbor_v4_ht;
+			base.neighbor_v6_ht = neighbor_v6_ht;
 		}
 
 		eResult result = worker->init(core_id,

@@ -341,4 +341,12 @@ protected:
 
 	std::mutex hugepage_pointers_mutex;
 	std::map<void*, hugepage_pointer> hugepage_pointers;
+
+	///XXX
+	std::mutex current_neighbor_mutex;
+	uint8_t current_neighbor_id;
+	dataplane::hashtable_mod_spinlock_dynamic<dataplane::neighbor_v4_key, dataplane::neighbor_value, 16>::updater neighbor_v4_ht_updater;
+	dataplane::hashtable_mod_spinlock_dynamic<dataplane::neighbor_v4_key, dataplane::neighbor_value, 16>* neighbor_v4_ht;
+	dataplane::hashtable_mod_spinlock_dynamic<dataplane::neighbor_v6_key, dataplane::neighbor_value, 16>* neighbor_v6_ht;
+	std::map<tSocketId, std::array<dataplane::globalBase::generation*, 2>> neighbors;
 };

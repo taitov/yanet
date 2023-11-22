@@ -10,6 +10,7 @@
 
 #include "common/result.h"
 
+#include "neighbor.h"
 #include "type.h"
 
 namespace dataplane::base
@@ -85,6 +86,7 @@ public:
 	}
 
 	dataplane::globalBase::generation* globalBase;
+	hashtable_mod_spinlock_dynamic<neighbor_v4_key, neighbor_value, 16>* neighbor_v4_ht;
+	hashtable_mod_spinlock_dynamic<neighbor_v6_key, neighbor_value, 16>* neighbor_v6_ht;
 } __rte_aligned(2 * RTE_CACHE_LINE_SIZE);
-
 }

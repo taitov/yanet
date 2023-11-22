@@ -1853,15 +1853,27 @@ inline void cWorker::route_handle4()
 				continue;
 			}
 
-			if (targetInterface.neighbor_ether_address_v4.addr_bytes[0] == 1)
+			/// XXX: burst
+			dataplane::neighbor_v4_key key;
+			key.interface_id = nexthop.interfaceId;
+			key.address.address = ipv4Header->dst_addr;
+
+			printf("XXX LOOKUP: %u, %4.4X\n", key.interface_id, key.address.address);
+
+			dataplane::neighbor_value* value;
+			dataplane::spinlock_nonrecursive_t* locker;
+			base.neighbor_v4_ht->lookup(key, value, locker);
+			if (!value)
 			{
+				locker->unlock();
 				stats.interface_neighbor_invalid++;
 				drop(mbuf);
 				continue;
 			}
 
 			generic_rte_ether_hdr* ethernetHeader = rte_pktmbuf_mtod(mbuf, generic_rte_ether_hdr*);
-			rte_ether_addr_copy(&targetInterface.neighbor_ether_address_v4, &ethernetHeader->dst_addr);
+			rte_ether_addr_copy(&value->ether_address, &ethernetHeader->dst_addr);
+			locker->unlock();
 
 			route_nexthop(mbuf, nexthop);
 
@@ -1952,15 +1964,25 @@ inline void cWorker::route_handle6()
 				continue;
 			}
 
-			if (targetInterface.neighbor_ether_address_v6.addr_bytes[0] == 1)
+			/// XXX: burst
+			dataplane::neighbor_v6_key key;
+			key.interface_id = nexthop.interfaceId;
+			rte_memcpy(key.address.bytes, ipv6Header->dst_addr, 16);
+
+			dataplane::neighbor_value* value;
+			dataplane::spinlock_nonrecursive_t* locker;
+			base.neighbor_v6_ht->lookup(key, value, locker);
+			if (!value)
 			{
+				locker->unlock();
 				stats.interface_neighbor_invalid++;
 				drop(mbuf);
 				continue;
 			}
 
 			generic_rte_ether_hdr* ethernetHeader = rte_pktmbuf_mtod(mbuf, generic_rte_ether_hdr*);
-			rte_ether_addr_copy(&targetInterface.neighbor_ether_address_v6, &ethernetHeader->dst_addr);
+			rte_ether_addr_copy(&value->ether_address, &ethernetHeader->dst_addr);
+			locker->unlock();
 
 			route_nexthop(mbuf, nexthop);
 
@@ -2138,19 +2160,29 @@ inline void cWorker::route_tunnel_handle4()
 				continue;
 			}
 
-			if (targetInterface.neighbor_ether_address_v4.addr_bytes[0] == 1)
+			/// XXX: burst
+			dataplane::neighbor_v4_key key;
+			key.interface_id = nexthop.interface_id;
+			key.address.address = ipv4Header->dst_addr;
+
+			dataplane::neighbor_value* value;
+			dataplane::spinlock_nonrecursive_t* locker;
+			base.neighbor_v4_ht->lookup(key, value, locker);
+			if (!value)
 			{
+				locker->unlock();
 				stats.interface_neighbor_invalid++;
 				drop(mbuf);
 				continue;
 			}
 
+			generic_rte_ether_hdr* ethernetHeader = rte_pktmbuf_mtod(mbuf, generic_rte_ether_hdr*);
+			rte_ether_addr_copy(&value->ether_address, &ethernetHeader->dst_addr);
+			locker->unlock();
+
 			/// counters[nexthop.counter_id]++;
 			counters[nexthop.atomic1 >> 8]++;
 			counters[(nexthop.atomic1 >> 8) + 1] += mbuf->pkt_len;
-
-			generic_rte_ether_hdr* ethernetHeader = rte_pktmbuf_mtod(mbuf, generic_rte_ether_hdr*);
-			rte_ether_addr_copy(&targetInterface.neighbor_ether_address_v4, &ethernetHeader->dst_addr);
 
 			route_tunnel_nexthop(mbuf, nexthop);
 
@@ -2244,19 +2276,29 @@ inline void cWorker::route_tunnel_handle6()
 				continue;
 			}
 
-			if (targetInterface.neighbor_ether_address_v6.addr_bytes[0] == 1)
+			/// XXX: burst
+			dataplane::neighbor_v6_key key;
+			key.interface_id = nexthop.interface_id;
+			rte_memcpy(key.address.bytes, ipv6Header->dst_addr, 16);
+
+			dataplane::neighbor_value* value;
+			dataplane::spinlock_nonrecursive_t* locker;
+			base.neighbor_v6_ht->lookup(key, value, locker);
+			if (!value)
 			{
+				locker->unlock();
 				stats.interface_neighbor_invalid++;
 				drop(mbuf);
 				continue;
 			}
 
+			generic_rte_ether_hdr* ethernetHeader = rte_pktmbuf_mtod(mbuf, generic_rte_ether_hdr*);
+			rte_ether_addr_copy(&value->ether_address, &ethernetHeader->dst_addr);
+			locker->unlock();
+
 			/// counters[nexthop.counter_id]++;
 			counters[nexthop.atomic1 >> 8]++;
 			counters[(nexthop.atomic1 >> 8) + 1] += mbuf->pkt_len;
-
-			generic_rte_ether_hdr* ethernetHeader = rte_pktmbuf_mtod(mbuf, generic_rte_ether_hdr*);
-			rte_ether_addr_copy(&targetInterface.neighbor_ether_address_v6, &ethernetHeader->dst_addr);
 
 			route_tunnel_nexthop(mbuf, nexthop);
 

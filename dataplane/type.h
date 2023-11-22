@@ -298,8 +298,6 @@ struct tInterface
 {
 	/// @todo: uint8_t enabled;
 
-	rte_ether_addr neighbor_ether_address_v4;
-	rte_ether_addr neighbor_ether_address_v6;
 	tAclId aclId;
 	common::globalBase::tFlow flow;
 };

@@ -890,22 +890,38 @@ eResult generation::updateInterface(const common::idp::updateGlobalBase::updateI
 		return eResult::invalidAclId;
 	}
 
+	/// XXX
+	//	if (neighbor_ether_address_v4)
+	//	{
+	//		memcpy(interface.neighbor_ether_address_v4.addr_bytes, (*neighbor_ether_address_v4).data(), 6); ///< @todo: convert
+	//	}
+	//	else
+	//	{
+	//		interface.neighbor_ether_address_v4.addr_bytes[0] = 1;
+	//	}
+
+	//	if (neighbor_ether_address_v6)
+	//	{
+	//		memcpy(interface.neighbor_ether_address_v6.addr_bytes, (*neighbor_ether_address_v6).data(), 6); ///< @todo: convert
+	//	}
+	//	else
+	//	{
+	//		interface.neighbor_ether_address_v6.addr_bytes[0] = 1;
+	//	}
+
+	/// XXX
 	if (neighbor_ether_address_v4)
 	{
-		memcpy(interface.neighbor_ether_address_v4.addr_bytes, (*neighbor_ether_address_v4).data(), 6); ///< @todo: convert
-	}
-	else
-	{
-		interface.neighbor_ether_address_v4.addr_bytes[0] = 1;
-	}
+		dataplane::neighbor_v4_key key;
+		key.interface_id = interfaceId;
+		key.address = ipv4_address_t::convert({"200.0.0.1"});
 
-	if (neighbor_ether_address_v6)
-	{
-		memcpy(interface.neighbor_ether_address_v6.addr_bytes, (*neighbor_ether_address_v6).data(), 6); ///< @todo: convert
-	}
-	else
-	{
-		interface.neighbor_ether_address_v6.addr_bytes[0] = 1;
+		printf("XXX ADD: %u, %4.4X\n", key.interface_id, key.address.address);
+
+		dataplane::neighbor_value value;
+		memcpy(value.ether_address.addr_bytes, (*neighbor_ether_address_v4).data(), 6);
+
+		dataPlane->neighbor_v4_ht->insert_or_update(key, value);
 	}
 
 	interface.flow = flow;

@@ -72,6 +72,7 @@ enum class requestType : uint32_t
 	get_shm_info,
 	dump_physical_port,
 	balancer_state_clear,
+	update_neighbor,
 	size, // size should always be at the bottom of the list, this enum allows us to find out the size of the enum list
 };
 
@@ -107,6 +108,25 @@ using clear = std::tuple<>;
 using request = std::vector<std::variant<insert,
                                          remove,
                                          clear>>;
+}
+
+namespace update_neighbor
+{
+
+enum class request_type : uint32_t
+{
+	clear,
+	get,
+	insert,
+	remove,
+	size
+};
+
+using request = std::tuple<request_type,
+                           std::variant<std::tuple<>>>;
+
+using response = std::variant<std::tuple<>>;
+
 }
 
 namespace updateGlobalBase

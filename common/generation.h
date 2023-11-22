@@ -156,6 +156,12 @@ public:
 		generations[id ^ 1] = {}; ///< @todo: gc
 	}
 
+	void switch_generation_without_clear()
+	{
+		std::unique_lock current_lock(current_mutex);
+		id ^= 1;
+	}
+
 	/** @todo
 	void gc()
 	{

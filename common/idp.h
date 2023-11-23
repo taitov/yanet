@@ -15,6 +15,7 @@
 #include "acl.h"
 #include "balancer.h"
 #include "config.h"
+#include "idp_neighbor.h"
 #include "result.h"
 #include "scheduler.h"
 #include "type.h"
@@ -72,7 +73,7 @@ enum class requestType : uint32_t
 	get_shm_info,
 	dump_physical_port,
 	balancer_state_clear,
-	update_neighbor,
+	neighbor,
 	size, // size should always be at the bottom of the list, this enum allows us to find out the size of the enum list
 };
 
@@ -108,25 +109,6 @@ using clear = std::tuple<>;
 using request = std::vector<std::variant<insert,
                                          remove,
                                          clear>>;
-}
-
-namespace update_neighbor
-{
-
-enum class request_type : uint32_t
-{
-	clear,
-	get,
-	insert,
-	remove,
-	size
-};
-
-using request = std::tuple<request_type,
-                           std::variant<std::tuple<>>>;
-
-using response = std::variant<std::tuple<>>;
-
 }
 
 namespace updateGlobalBase
@@ -936,7 +918,8 @@ using request = std::tuple<requestType,
                                         unrdup_vip_to_balancers::request,
                                         update_vip_vport_proto::request,
                                         get_counter_by_name::request,
-                                        dump_physical_port::request>>;
+                                        dump_physical_port::request,
+                                        neighbor::request>>;
 
 using response = std::variant<std::tuple<>,
                               updateGlobalBase::response, ///< + others which have eResult as response
@@ -967,6 +950,6 @@ using response = std::variant<std::tuple<>,
                               limits::response,
                               samples::response,
                               get_counter_by_name::response,
-                              get_shm_info::response>;
-
+                              get_shm_info::response,
+                              neighbor::response>;
 }

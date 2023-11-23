@@ -137,6 +137,19 @@ eResult cDataPlane::init(const std::string& binaryPath,
 		return result;
 	}
 
+	{
+		std::set<tSocketId> socket_ids;
+		for (const auto core_id : config.workerGCs)
+		{
+			socket_ids.emplace(rte_lcore_to_socket_id(core_id));
+		}
+
+		for (const auto socket_id : socket_ids)
+		{
+			this->socket_ids.emplace_back(socket_id);
+		}
+	}
+
 	result = initPorts();
 	if (result != eResult::success)
 	{
@@ -153,6 +166,12 @@ eResult cDataPlane::init(const std::string& binaryPath,
 	}
 
 	mempool_log = rte_mempool_create("log", YANET_CONFIG_SAMPLES_SIZE, sizeof(samples::sample_t), 0, 0, NULL, NULL, NULL, NULL, SOCKET_ID_ANY, MEMPOOL_F_NO_IOVA_CONTIG);
+
+	result = neighbor.init(this);
+	if (result != eResult::success)
+	{
+		return result;
+	}
 
 	result = initGlobalBases();
 	if (result != eResult::success)
@@ -1443,6 +1462,11 @@ std::optional<tPortId> cDataPlane::interface_name_to_port_id(const std::string& 
 
 	/// unknown interface
 	return std::nullopt;
+}
+
+const std::vector<tSocketId>& cDataPlane::get_socket_ids() const
+{
+	return socket_ids;
 }
 
 eResult cDataPlane::parseConfig(const std::string& configFilePath)

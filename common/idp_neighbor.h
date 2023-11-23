@@ -8,7 +8,7 @@
 #include "result.h"
 #include "type.h"
 
-namespace common::idp::update_neighbor
+namespace common::idp::neighbor
 {
 
 enum class request_type : uint32_t

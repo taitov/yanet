@@ -8,13 +8,41 @@ neighbor::neighbor()
 {
 }
 
+eResult neighbor::init(cDataPlane* dataplane)
+{
+	this->dataplane = dataplane;
+
+	generations.next_lock();
+	generations.next().init(dataplane);
+	generations.switch_generation_without_clear();
+	generations.next().init(dataplane);
+	generations.next_unlock();
+
+	return eResult::success;
+}
+
+common::idp::neighbor::response neighbor::update(const common::idp::neighbor::request& request)
+{
+	const auto& [request_type, request_data] = request;
+
+	YADECAP_LOG_DEBUG("neighbor request: %d\n", (int)request_type);
+
+	if (request_type == common::idp::neighbor::request_type::get)
+	{
+		generations.current_lock();
+		generations.current_unlock();
+	}
+
+	return eResult::success;
+}
+
 void neighbor::insert(const tInterfaceId interface_id,
                       const common::ip_address_t address,
                       const common::mac_address_t& mac_address)
 {
 	std::lock_guard<std::mutex> requests_lock(requests_mutex);
-	requests.emplace_back(common::idp::update_neighbor::request_type::insert,
-	                      common::idp::update_neighbor::insert::request(interface_id, address, mac_address));
+	requests.emplace_back(common::idp::neighbor::request_type::insert,
+	                      common::idp::neighbor::insert::request(interface_id, address, mac_address));
 }
 
 void neighbor::thread()
@@ -30,7 +58,29 @@ void neighbor::monitor_thread()
 	insert(1, {"200.0.0.1"}, {"00:11:22:33:44:55"});
 }
 
-void generation::insert(const common::idp::update_neighbor::insert::request& request)
+generation::generation()
+{
+}
+
+eResult socket::init(cDataPlane* dataplane,
+                     const tSocketId socket_id)
+{
+	auto* v4 = dataplane->hugepage_create_dynamic<hashtable_v4>(socket_id, 1024, updater_v4);
+	if (!v4)
+	{
+		return eResult::errorAllocatingMemory;
+	}
+
+	auto* v6 = dataplane->hugepage_create_dynamic<hashtable_v6>(socket_id, 1024, updater_v6);
+	if (!v6)
+	{
+		return eResult::errorAllocatingMemory;
+	}
+
+	return eResult::success;
+}
+
+void socket::insert(const common::idp::neighbor::insert::request& request)
 {
 	const auto& [interface_id, address, mac_address] = request;
 
@@ -43,7 +93,7 @@ void generation::insert(const common::idp::update_neighbor::insert::request& req
 		key.interface_id = interface_id;
 		key.address = ipv4_address_t::convert(address.get_ipv4());
 
-		if (!ht_v4->insert_or_update(key, value))
+		if (!updater_v4.hashtable->insert_or_update(key, value))
 		{
 			/// XXX
 		}
@@ -54,9 +104,25 @@ void generation::insert(const common::idp::update_neighbor::insert::request& req
 		key.interface_id = interface_id;
 		key.address = ipv6_address_t::convert(address.get_ipv6());
 
-		if (!ht_v6->insert_or_update(key, value))
+		if (!updater_v6.hashtable->insert_or_update(key, value))
 		{
 			/// XXX
 		}
 	}
+}
+
+eResult generation::init(cDataPlane* dataplane)
+{
+	eResult result = eResult::success;
+
+	for (const auto socket_id : dataplane->get_socket_ids())
+	{
+		result = sockets[socket_id].init(dataplane, socket_id);
+		if (result != eResult::success)
+		{
+			return result;
+		}
+	};
+
+	return result;
 }

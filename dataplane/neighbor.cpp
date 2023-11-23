@@ -12,11 +12,9 @@ eResult neighbor::init(cDataPlane* dataplane)
 {
 	this->dataplane = dataplane;
 
-	generations.next_lock();
-	generations.next().init(dataplane);
-	generations.switch_generation_without_clear();
-	generations.next().init(dataplane);
-	generations.next_unlock();
+	generations.apply([&](generation& generation) {
+		generation.init(dataplane);
+	});
 
 	return eResult::success;
 }
@@ -32,6 +30,15 @@ common::idp::neighbor::response neighbor::update(const common::idp::neighbor::re
 		generations.current_lock();
 		generations.current_unlock();
 	}
+	else if (request_type == common::idp::neighbor::request_type::update)
+	{
+		generations.apply([&](generation& generation) {
+			for (auto& [socket_id, socket] : generation.sockets)
+			{
+				socket.
+			}
+		});
+	}
 
 	return eResult::success;
 }
@@ -45,12 +52,26 @@ void neighbor::insert(const tInterfaceId interface_id,
 	                      common::idp::neighbor::insert::request(interface_id, address, mac_address));
 }
 
-void neighbor::thread()
+void neighbor::switch_generation(const std::map<tSocketId, dataplane::base::generation*>& worker_generation)
 {
 	generations.next_lock();
-
 	generations.switch_generation_without_clear();
+	generations.next().requests.clear();
+	generations.next().update(generations.current().requests);
 	generations.next_unlock();
+
+	generations.current_lock();
+	worker_generation.find(0)->second->globalBase = NULL; ///< XXX
+	generations.current_unlock();
+}
+
+void neighbor::thread()
+{
+	std::lock_guard<std::mutex> requests_lock(requests_mutex);
+	for (const auto& request : requests)
+	{
+	}
+	requests.clear();
 }
 
 void neighbor::monitor_thread()

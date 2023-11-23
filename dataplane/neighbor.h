@@ -47,6 +47,7 @@ class socket
 public:
 	eResult init(cDataPlane* dataplane, const tSocketId socket_id);
 
+	void update();
 	void insert(const common::idp::neighbor::insert::request& request);
 
 public:
@@ -63,8 +64,10 @@ public:
 
 public:
 	eResult init(cDataPlane* dataplane);
+	void update(const std::vector<common::idp::neighbor::request>& requests);
 
 public:
+	std::vector<common::idp::neighbor::request> requests;
 	std::vector<interface> interfaces;
 	std::map<tSocketId, socket> sockets;
 };
@@ -80,6 +83,7 @@ public:
 	eResult init(cDataPlane* dataplane);
 	common::idp::neighbor::response update(const common::idp::neighbor::request& request);
 	void insert(const tInterfaceId interface_id, const common::ip_address_t address, const common::mac_address_t& mac_address);
+	void switch_generation();
 
 protected:
 	void thread();

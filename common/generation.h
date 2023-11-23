@@ -146,6 +146,17 @@ public:
 	}
 	*/
 
+	/// call function for all generations
+	template<typename function_t>
+	void apply(const function_t& function)
+	{
+		next_lock();
+		function(next());
+		switch_generation_without_clear();
+		function(next());
+		next_unlock();
+	}
+
 	void switch_generation()
 	{
 		{

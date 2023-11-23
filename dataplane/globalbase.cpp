@@ -890,24 +890,6 @@ eResult generation::updateInterface(const common::idp::updateGlobalBase::updateI
 		return eResult::invalidAclId;
 	}
 
-	if (neighbor_ether_address_v4)
-	{
-		memcpy(interface.neighbor_ether_address_v4.addr_bytes, (*neighbor_ether_address_v4).data(), 6); ///< @todo: convert
-	}
-	else
-	{
-		interface.neighbor_ether_address_v4.addr_bytes[0] = 1;
-	}
-
-	if (neighbor_ether_address_v6)
-	{
-		memcpy(interface.neighbor_ether_address_v6.addr_bytes, (*neighbor_ether_address_v6).data(), 6); ///< @todo: convert
-	}
-	else
-	{
-		interface.neighbor_ether_address_v6.addr_bytes[0] = 1;
-	}
-
 	interface.flow = flow;
 	interface.aclId = aclId;
 
@@ -1546,7 +1528,7 @@ eResult generation::route_value_update(const common::idp::updateGlobalBase::rout
 		     ecmp_i < request_interface.size();
 		     ecmp_i++)
 		{
-			const auto& [interface_id, labels] = request_interface[ecmp_i];
+			const auto& [interface_id, labels, nexthop] = request_interface[ecmp_i];
 
 			if (interface_id >= CONFIG_YADECAP_INTERFACES_SIZE)
 			{
@@ -1555,6 +1537,7 @@ eResult generation::route_value_update(const common::idp::updateGlobalBase::rout
 			}
 
 			route_value.interface.nexthops[ecmp_i].interfaceId = interface_id;
+			route_value.interface.nexthops[ecmp_i].nexthop = ipv6_address_t::convert(nexthop);
 
 			if (labels.size() == 0)
 			{

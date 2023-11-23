@@ -143,6 +143,12 @@ void cControlPlane::start()
 		set_kernel_interface_up(interface_name);
 	}
 
+	std::thread neighbor([&]() {
+		neighbor_thread();
+	});
+
+	neighbor.detach();
+
 	mainThread();
 }
 
@@ -1980,6 +1986,31 @@ unsigned cControlPlane::ring_handle(rte_ring* ring_to_free_mbuf,
 		}
 	}
 	return rxSize;
+}
+
+void cControlPlane::neighbor_thread()
+{
+	for (;;)
+	{
+		dataplane::neighbor::key_v4 key;
+		key.interface_id = 1;
+		key.address = ipv4_address_t::convert({"200.0.0.1"});
+
+		dataplane::neighbor::value value;
+
+		for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)
+		{
+			(void)core_id;
+			worker_gc->run_on_this_thread([&, worker_gc = worker_gc]() {
+				auto* atomic = worker_gc->base_permanently.globalBaseAtomic;
+				atomic->neighbor_v4->insert_or_update(key, value);
+				return true;
+			});
+		}
+
+		printf("XXX: DEAD LOOP\n");
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
 }
 
 void cControlPlane::handlePacketFromForwardingPlane(rte_mbuf* mbuf)

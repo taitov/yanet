@@ -623,10 +623,24 @@ eResult cDataPlane::initGlobalBases()
 					return eResult::errorAllocatingMemory;
 				}
 
+				auto* neighbor_v4 = hugepage_create_dynamic<dataplane::neighbor::hashtable_v4>(socket_id, 64 * 1024, globalbase_atomic->updater.neighbor_v4);
+				if (!neighbor_v4)
+				{
+					return eResult::errorAllocatingMemory;
+				}
+
+				auto* neighbor_v6 = hugepage_create_dynamic<dataplane::neighbor::hashtable_v6>(socket_id, 64 * 1024, globalbase_atomic->updater.neighbor_v6);
+				if (!neighbor_v6)
+				{
+					return eResult::errorAllocatingMemory;
+				}
+
 				globalbase_atomic->fw4_state = ipv4_states_ht;
 				globalbase_atomic->fw6_state = ipv6_states_ht;
 				globalbase_atomic->nat64stateful_lan_state = nat64stateful_lan_state;
 				globalbase_atomic->nat64stateful_wan_state = nat64stateful_wan_state;
+				globalbase_atomic->neighbor_v4 = neighbor_v4;
+				globalbase_atomic->neighbor_v6 = neighbor_v6;
 			}
 
 			globalBaseAtomics[socket_id] = globalbase_atomic;

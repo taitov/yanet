@@ -16,6 +16,7 @@
 #include "flat.h"
 #include "hashtable.h"
 #include "lpm.h"
+#include "neighbor.h"
 #include "type.h"
 
 /// @todo: move
@@ -93,6 +94,8 @@ public: ///< @todo
 		acl::ipv6_states_ht::updater fw6_state;
 		nat64stateful::lan_ht::updater nat64stateful_lan_state;
 		nat64stateful::wan_ht::updater nat64stateful_wan_state;
+		dataplane::neighbor::hashtable_v4::updater neighbor_v4;
+		dataplane::neighbor::hashtable_v6::updater neighbor_v6;
 	} updater;
 
 	hashtable_gc_t balancer_state_gc;
@@ -115,6 +118,8 @@ public: ///< @todo
 	acl::ipv6_states_ht* fw6_state;
 	nat64stateful::lan_ht* nat64stateful_lan_state;
 	nat64stateful::wan_ht* nat64stateful_wan_state;
+	dataplane::neighbor::hashtable_v4* neighbor_v4;
+	dataplane::neighbor::hashtable_v6* neighbor_v6;
 
 	hashtable_mod_spinlock<balancer_state_key_t,
 	                       balancer_state_value_t,

@@ -360,7 +360,8 @@ using request = lpm::request;
 namespace route_value_update
 {
 using interface = std::vector<std::tuple<tInterfaceId,
-                                         std::vector<uint32_t>>>;
+                                         std::vector<uint32_t>,
+                                         ip_address_t>>;
 
 using request = std::tuple<uint32_t, ///< route_value_id
                            tSocketId,

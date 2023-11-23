@@ -1097,23 +1097,6 @@ void route_t::value_compile(common::idp::updateGlobalBase::request& globalbase,
 	{
 		const auto& [nexthop, labels] = destination_iter;
 
-		if (nexthop.is_default())
-		{
-			controlPlane->forEachSocket([this, &value_id, &globalbase](const tSocketId& socket_id) {
-				globalbase.emplace_back(common::idp::updateGlobalBase::requestType::route_value_update,
-				                        common::idp::updateGlobalBase::route_value_update::request(value_id,
-				                                                                                   socket_id,
-				                                                                                   common::globalBase::eNexthopType::controlPlane,
-				                                                                                   {}));
-
-				value_lookup[value_id][socket_id].emplace_back(ip_address_t(),
-				                                               "linux",
-				                                               std::vector<uint32_t>());
-			});
-
-			return;
-		}
-
 		auto interface = generation.get_interface_by_neighbor(nexthop);
 		if (interface)
 		{
@@ -1228,7 +1211,7 @@ void route_t::value_compile(common::idp::updateGlobalBase::request& globalbase,
 
 			if (exist(interfaces, egress_interface_id))
 			{
-				update_interface.emplace_back(egress_interface_id, labels);
+				update_interface.emplace_back(egress_interface_id, labels, nexthop);
 
 				value_lookup[value_id][socket_id].emplace_back(nexthop,
 				                                               egress_interface_name,
@@ -1243,7 +1226,7 @@ void route_t::value_compile(common::idp::updateGlobalBase::request& globalbase,
 			{
 				const auto& [nexthop, egress_interface_id, egress_interface_name, labels] = item;
 
-				update_interface.emplace_back(egress_interface_id, labels);
+				update_interface.emplace_back(egress_interface_id, labels, nexthop);
 
 				value_lookup[value_id][socket_id].emplace_back(nexthop,
 				                                               egress_interface_name,

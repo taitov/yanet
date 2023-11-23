@@ -90,6 +90,7 @@ protected:
 
 	void mainThread();
 	unsigned ring_handle(rte_ring* ring_to_free_mbuf, rte_ring* ring);
+	void neighbor_thread();
 
 	void handlePacketFromForwardingPlane(rte_mbuf* mbuf); ///< @todo: rename
 	void handle_packet_from_kernel(rte_mbuf* mbuf);

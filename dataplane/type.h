@@ -298,8 +298,6 @@ struct tInterface
 {
 	/// @todo: uint8_t enabled;
 
-	rte_ether_addr neighbor_ether_address_v4;
-	rte_ether_addr neighbor_ether_address_v6;
 	tAclId aclId;
 	common::globalBase::tFlow flow;
 };
@@ -378,6 +376,7 @@ struct dregress_t
 struct nexthop ///< @todo
 {
 	tInterfaceId interfaceId : 16;
+	ipv6_address_t nexthop;
 	uint32_t labelExpTransport; ///< @todo: rename first
 	uint32_t labelExpService; ///< @todo: rename second
 };
@@ -420,8 +419,6 @@ struct route_value_t
 		} interface;
 	};
 };
-
-static_assert(sizeof(route_value_t) == 192, "invalid size of route_value_t");
 
 struct route_tunnel_value_t
 {

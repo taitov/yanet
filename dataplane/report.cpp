@@ -761,8 +761,6 @@ nlohmann::json cReport::convertGlobalBase(const dataplane::globalBase::generatio
 
 		nlohmann::json jsonInterface;
 		jsonInterface["interfaceId"] = interfaceId;
-		jsonInterface["neighbor_ether_address_v4"] = convertEtherAddressToString(interface.neighbor_ether_address_v4);
-		jsonInterface["neighbor_ether_address_v6"] = convertEtherAddressToString(interface.neighbor_ether_address_v6);
 		jsonInterface["flow"] = convertFlow(interface.flow);
 
 		json["interfaces"].emplace_back(jsonInterface);

@@ -523,7 +523,7 @@ nlohmann::json cReport::convertBus(const cBus* bus)
 	nlohmann::json json;
 
 	for (uint32_t request_i = 0;
-	     request_i < (uint32_t)common::idp::requestType::size;
+	     request_i < (uint32_t)common::idp::requestType::enum_size;
 	     request_i++)
 	{
 		nlohmann::json jsonStat;

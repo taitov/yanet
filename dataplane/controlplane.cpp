@@ -1301,6 +1301,123 @@ eResult cControlPlane::balancer_state_clear()
 	return eResult::success;
 }
 
+common::idp::neighbor_show::response cControlPlane::neighbor_show(const common::idp::neighbor_show::request& request)
+{
+	(void)request;
+
+	common::idp::neighbor_show::response response;
+	for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)
+	{
+		(void)core_id;
+
+		uint32_t offset = 0;
+		worker_gc->run_on_this_thread([&, worker_gc = worker_gc]() {
+			auto* globalbase_atomic = worker_gc->base_permanently.globalBaseAtomic;
+
+			for (auto iter : globalbase_atomic->updater.neighbor_v4.range(offset, 64))
+			{
+				iter.lock();
+				if (!iter.is_valid())
+				{
+					iter.unlock();
+					continue;
+				}
+
+				auto key = *iter.key();
+				auto value = *iter.value();
+				iter.unlock();
+
+				response.emplace_back(key.interface_id,
+				                      common::ipv4_address_t(rte_be_to_cpu_32(key.address.address)),
+				                      common::mac_address_t(value.ether_address.addr_bytes));
+			}
+
+			if (offset != 0)
+			{
+				return false;
+			}
+
+			return true;
+		});
+
+		offset = 0;
+		worker_gc->run_on_this_thread([&, worker_gc = worker_gc]() {
+			auto* globalbase_atomic = worker_gc->base_permanently.globalBaseAtomic;
+
+			for (auto iter : globalbase_atomic->updater.neighbor_v6.range(offset, 64))
+			{
+				iter.lock();
+				if (!iter.is_valid())
+				{
+					iter.unlock();
+					continue;
+				}
+
+				auto key = *iter.key();
+				auto value = *iter.value();
+				iter.unlock();
+
+				response.emplace_back(key.interface_id,
+				                      common::ipv6_address_t(key.address.bytes),
+				                      common::mac_address_t(value.ether_address.addr_bytes));
+			}
+
+			if (offset != 0)
+			{
+				return false;
+			}
+
+			return true;
+		});
+
+		break;
+	}
+	return response;
+}
+
+eResult cControlPlane::neighbor_insert(const common::idp::neighbor_insert::request& request)
+{
+	const auto& [interface_id, ip_address, mac_address] = request;
+
+	dataplane::neighbor::value value;
+	memcpy(value.ether_address.addr_bytes, mac_address.data(), 6);
+
+	if (ip_address.is_ipv4())
+	{
+		dataplane::neighbor::key_v4 key;
+		key.interface_id = interface_id;
+		key.address = ipv4_address_t::convert(ip_address.get_ipv4());
+
+		for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)
+		{
+			(void)core_id;
+			worker_gc->run_on_this_thread([&, worker_gc = worker_gc]() {
+				auto* globalbase_atomic = worker_gc->base_permanently.globalBaseAtomic;
+				globalbase_atomic->neighbor_v4->insert_or_update(key, value);
+				return true;
+			});
+		}
+	}
+	else
+	{
+		dataplane::neighbor::key_v6 key;
+		key.interface_id = interface_id;
+		key.address = ipv6_address_t::convert(ip_address.get_ipv6());
+
+		for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)
+		{
+			(void)core_id;
+			worker_gc->run_on_this_thread([&, worker_gc = worker_gc]() {
+				auto* atomic = worker_gc->base_permanently.globalBaseAtomic;
+				atomic->neighbor_v6->insert_or_update(key, value);
+				return true;
+			});
+		}
+	}
+
+	return eResult::success;
+}
+
 common::idp::nat64stateful_state::response cControlPlane::nat64stateful_state(const common::idp::nat64stateful_state::request& request)
 {
 	common::idp::nat64stateful_state::response response;
@@ -1992,23 +2109,22 @@ void cControlPlane::neighbor_thread()
 {
 	for (;;)
 	{
-		dataplane::neighbor::key_v4 key;
-		key.interface_id = 1;
-		key.address = ipv4_address_t::convert({"200.0.0.1"});
+		//		dataplane::neighbor::key_v4 key;
+		//		key.interface_id = 1;
+		//		key.address = ipv4_address_t::convert({"200.0.0.1"});
 
-		dataplane::neighbor::value value;
+		//		dataplane::neighbor::value value;
 
-		for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)
-		{
-			(void)core_id;
-			worker_gc->run_on_this_thread([&, worker_gc = worker_gc]() {
-				auto* atomic = worker_gc->base_permanently.globalBaseAtomic;
-				atomic->neighbor_v4->insert_or_update(key, value);
-				return true;
-			});
-		}
+		//		for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)
+		//		{
+		//			(void)core_id;
+		//			worker_gc->run_on_this_thread([&, worker_gc = worker_gc]() {
+		//				auto* atomic = worker_gc->base_permanently.globalBaseAtomic;
+		//				atomic->neighbor_v4->insert_or_update(key, value);
+		//				return true;
+		//			});
+		//		}
 
-		printf("XXX: DEAD LOOP\n");
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 }

@@ -779,18 +779,26 @@ void route_t::compile_interface(common::idp::updateGlobalBase::request& globalba
 
 			if (neighbor_mac_address_v4)
 			{
+				/// legacy
+				dataplane.neighbor_insert({interface.interfaceId,
+				                           *interface.neighborIPv4Address,
+				                           *neighbor_mac_address_v4});
+
 				generation_neighbors.mac_addresses[{route_name, interface_name, *interface.neighborIPv4Address}] = *neighbor_mac_address_v4;
 			}
 
 			if (neighbor_mac_address_v6)
 			{
+				/// legacy
+				dataplane.neighbor_insert({interface.interfaceId,
+				                           *interface.neighborIPv6Address,
+				                           *neighbor_mac_address_v6});
+
 				generation_neighbors.mac_addresses[{route_name, interface_name, *interface.neighborIPv6Address}] = *neighbor_mac_address_v6;
 			}
 
 			globalbase.emplace_back(common::idp::updateGlobalBase::requestType::updateInterface,
 			                        common::idp::updateGlobalBase::updateInterface::request{interface.interfaceId,
-			                                                                                neighbor_mac_address_v4,
-			                                                                                neighbor_mac_address_v6,
 			                                                                                interface.aclId,
 			                                                                                interface.flow});
 		}
@@ -1112,7 +1120,8 @@ void route_t::value_compile(common::idp::updateGlobalBase::request& globalbase,
 			request_interface.emplace_back(nexthop,
 			                               interface_id,
 			                               interface_name,
-			                               labels);
+			                               labels,
+			                               nexthop);
 
 			continue;
 		}
@@ -1207,11 +1216,17 @@ void route_t::value_compile(common::idp::updateGlobalBase::request& globalbase,
 		/// same numa
 		for (const auto& item : request_interface)
 		{
-			const auto& [nexthop, egress_interface_id, egress_interface_name, labels] = item;
+			const auto& [nexthop, egress_interface_id, egress_interface_name, labels, neighbor_nexthop] = item;
 
 			if (exist(interfaces, egress_interface_id))
 			{
-				update_interface.emplace_back(egress_interface_id, labels, nexthop);
+				uint16_t flags = 0;
+				if (neighbor_nexthop.is_default())
+				{
+					flags |= YANET_NEXTHOP_FLAG_DIRECTLY;
+				}
+
+				update_interface.emplace_back(egress_interface_id, labels, neighbor_nexthop, flags);
 
 				value_lookup[value_id][socket_id].emplace_back(nexthop,
 				                                               egress_interface_name,
@@ -1224,9 +1239,15 @@ void route_t::value_compile(common::idp::updateGlobalBase::request& globalbase,
 		{
 			for (const auto& item : request_interface)
 			{
-				const auto& [nexthop, egress_interface_id, egress_interface_name, labels] = item;
+				const auto& [nexthop, egress_interface_id, egress_interface_name, labels, neighbor_nexthop] = item;
 
-				update_interface.emplace_back(egress_interface_id, labels, nexthop);
+				uint16_t flags = 0;
+				if (neighbor_nexthop.is_default())
+				{
+					flags |= YANET_NEXTHOP_FLAG_DIRECTLY;
+				}
+
+				update_interface.emplace_back(egress_interface_id, labels, neighbor_nexthop, flags);
 
 				value_lookup[value_id][socket_id].emplace_back(nexthop,
 				                                               egress_interface_name,
@@ -1284,7 +1305,8 @@ void route_t::value_compile_label(common::idp::updateGlobalBase::request& global
 			request_interface.emplace_back(first_nexthop,
 			                               interface_id,
 			                               interface_name,
-			                               labels);
+			                               labels,
+			                               nexthop);
 		}
 		else
 		{
@@ -1330,7 +1352,8 @@ void route_t::value_compile_fallback(common::idp::updateGlobalBase::request& glo
 			request_interface.emplace_back(nexthop,
 			                               interface_id,
 			                               interface_name,
-			                               labels);
+			                               labels,
+			                               nexthop);
 		}
 	}
 }
@@ -1609,7 +1632,13 @@ void route_t::tunnel_value_compile(common::idp::updateGlobalBase::request& globa
 			{
 				const auto counter_ids = tunnel_counter.get_ids({fallback.is_ipv4(), peer_id, nexthop, origin_as});
 
-				update_nexthops.emplace_back(egress_interface_id, counter_ids[0], label, nexthop);
+				uint16_t flags = 0;
+				if (nexthop.is_default())
+				{
+					flags |= YANET_NEXTHOP_FLAG_DIRECTLY;
+				}
+
+				update_nexthops.emplace_back(egress_interface_id, counter_ids[0], label, nexthop, flags);
 				weights.emplace_back(weight);
 
 				tunnel_value_lookup[value_id][socket_id].emplace_back(nexthop,
@@ -1633,7 +1662,13 @@ void route_t::tunnel_value_compile(common::idp::updateGlobalBase::request& globa
 
 				const auto counter_ids = tunnel_counter.get_ids({fallback.is_ipv4(), peer_id, nexthop, origin_as});
 
-				update_nexthops.emplace_back(egress_interface_id, counter_ids[0], label, nexthop);
+				uint16_t flags = 0;
+				if (nexthop.is_default())
+				{
+					flags |= YANET_NEXTHOP_FLAG_DIRECTLY;
+				}
+
+				update_nexthops.emplace_back(egress_interface_id, counter_ids[0], label, nexthop, flags);
 				weights.emplace_back(weight);
 
 				tunnel_value_lookup[value_id][socket_id].emplace_back(nexthop,

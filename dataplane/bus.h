@@ -73,7 +73,7 @@ protected:
 			memset(this, 0, sizeof(*this));
 		}
 
-		uint64_t requests[(uint32_t)common::idp::requestType::size];
+		uint64_t requests[(uint32_t)common::idp::requestType::enum_size];
 		uint64_t errors[(uint32_t)common::idp::errorType::size];
 	} stats;
 

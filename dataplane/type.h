@@ -376,6 +376,7 @@ struct dregress_t
 struct nexthop ///< @todo
 {
 	tInterfaceId interfaceId : 16;
+	uint16_t flags;
 	ipv6_address_t nexthop;
 	uint32_t labelExpTransport; ///< @todo: rename first
 	uint32_t labelExpService; ///< @todo: rename second
@@ -383,22 +384,12 @@ struct nexthop ///< @todo
 
 struct nexthop_tunnel_t
 {
-	union
-	{
-		struct
-		{
-			tInterfaceId interface_id : 8;
-			tCounterId counter_id : 24;
-		};
-
-		uint32_t atomic1;
-	};
-
+	tInterfaceId interface_id : 16;
+	uint16_t flags;
+	tCounterId counter_id;
 	uint32_t label;
 	ipv6_address_t nexthop_address;
 };
-
-static_assert(YANET_CONFIG_COUNTERS_SIZE <= 0xFFFFFF, "invalid YANET_CONFIG_COUNTERS_SIZE");
 
 struct route_value_t
 {

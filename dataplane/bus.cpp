@@ -347,13 +347,21 @@ void cBus::clientThread(int clientSocket)
 		{
 			response = callWithResponse(&cControlPlane::balancer_state_clear, request);
 		}
+		else if (type == common::idp::requestType::neighbor_show)
+		{
+			response = callWithResponse(&cControlPlane::neighbor_show, request);
+		}
+		else if (type == common::idp::requestType::neighbor_insert)
+		{
+			response = callWithResponse(&cControlPlane::neighbor_insert, request);
+		}
 		else
 		{
 			stats.errors[(uint32_t)common::idp::errorType::busParse]++;
 			break;
 		}
 
-		if ((uint32_t)type < (uint32_t)common::idp::requestType::size)
+		if ((uint32_t)type < (uint32_t)common::idp::requestType::enum_size)
 		{
 			stats.requests[(uint32_t)type]++;
 		}

@@ -27,7 +27,8 @@ using value_key_t = std::tuple<std::tuple<std::string, ///< vrf
 using value_interface_t = std::tuple<ip_address_t,
                                      tInterfaceId,
                                      std::string,
-                                     std::vector<uint32_t>>;
+                                     std::vector<uint32_t>,
+                                     ip_address_t>; ///< neighbor_nexthop
 
 using lookup_t = std::tuple<ip_address_t, ///< nexthop
                             std::string,

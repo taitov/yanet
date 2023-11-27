@@ -219,6 +219,16 @@ public:
 		return get<common::idp::requestType::balancer_state_clear, eResult>();
 	}
 
+	auto neighbor_insert(const common::idp::neighbor_insert::request& request) const
+	{
+		return get<common::idp::requestType::neighbor_insert, eResult>(request);
+	}
+
+	auto neighbor_show(const common::idp::neighbor_show::request& request) const
+	{
+		return get<common::idp::requestType::neighbor_show, common::idp::neighbor_show::response>(request);
+	}
+
 protected:
 	void connectToDataPlane() const
 	{

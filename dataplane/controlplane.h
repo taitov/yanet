@@ -73,6 +73,8 @@ public:
 	common::idp::get_shm_info::response get_shm_info();
 	eResult dump_physical_port(const common::idp::dump_physical_port::request& request);
 	eResult balancer_state_clear();
+	common::idp::neighbor_show::response neighbor_show(const common::idp::neighbor_show::request& request);
+	eResult neighbor_insert(const common::idp::neighbor_insert::request& request);
 
 	void switchBase();
 	void switchGlobalBase();

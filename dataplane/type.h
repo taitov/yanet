@@ -388,6 +388,7 @@ struct nexthop_tunnel_t
 	uint16_t flags;
 	tCounterId counter_id;
 	uint32_t label;
+	ipv6_address_t ip_address;
 	ipv6_address_t nexthop_address;
 };
 

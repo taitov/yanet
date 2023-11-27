@@ -63,7 +63,8 @@ using tunnel_value_interface_t = std::tuple<ip_address_t, ///< nexthop
                                             std::string, ///< interface_name
                                             uint32_t, ///< peer_id
                                             uint32_t, ///< origin_as
-                                            uint32_t>; ///< weight
+                                            uint32_t, ///< weight
+                                            ip_address_t>; ///< neighbor_nexthop
 
 using tunnel_lookup_t = std::tuple<ip_address_t, ///< nexthop
                                    std::string, ///< interface_name

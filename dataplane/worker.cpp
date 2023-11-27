@@ -2414,7 +2414,7 @@ inline void cWorker::route_tunnel_nexthop(rte_mbuf* mbuf,
 		ipv4Header->next_proto_id = IPPROTO_UDP;
 		ipv4Header->hdr_checksum = 0;
 		ipv4Header->src_addr = route.ipv4AddressSource.address;
-		ipv4Header->dst_addr = nexthop.nexthop_address.mapped_ipv4_address.address;
+		ipv4Header->dst_addr = nexthop.ip_address.mapped_ipv4_address.address;
 
 		yanet_ipv4_checksum(ipv4Header);
 
@@ -2443,7 +2443,7 @@ inline void cWorker::route_tunnel_nexthop(rte_mbuf* mbuf,
 		ipv6Header->proto = IPPROTO_UDP;
 		ipv6Header->hop_limits = 64;
 		rte_memcpy(ipv6Header->src_addr, route.ipv6AddressSource.bytes, 16);
-		rte_memcpy(ipv6Header->dst_addr, nexthop.nexthop_address.bytes, 16);
+		rte_memcpy(ipv6Header->dst_addr, nexthop.ip_address.bytes, 16);
 
 		metadata->transport_headerOffset = metadata->network_headerOffset + sizeof(rte_ipv6_hdr);
 

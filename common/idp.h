@@ -388,6 +388,7 @@ using interface = std::tuple<uint32_t, ///< weight_start
                              std::vector<std::tuple<tInterfaceId,
                                                     tCounterId,
                                                     uint32_t, ///< label
+                                                    ip_address_t, ///< ip_address
                                                     ip_address_t, ///< nexthop_address
                                                     uint16_t>>>; ///< nexthop_flags
 

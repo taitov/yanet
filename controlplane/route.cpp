@@ -1463,7 +1463,8 @@ void route_t::tunnel_value_compile(common::idp::updateGlobalBase::request& globa
 						                               interface_name,
 						                               peer_id,
 						                               origin_as,
-						                               weight);
+						                               weight,
+						                               default_nexthop);
 					}
 				}
 			}
@@ -1482,7 +1483,8 @@ void route_t::tunnel_value_compile(common::idp::updateGlobalBase::request& globa
 						                               interface_name,
 						                               peer_id,
 						                               origin_as,
-						                               weight);
+						                               weight,
+						                               default_nexthop);
 					}
 				}
 			}
@@ -1523,7 +1525,8 @@ void route_t::tunnel_value_compile(common::idp::updateGlobalBase::request& globa
 				                               interface_name,
 				                               0,
 				                               0,
-				                               1);
+				                               1,
+				                               nexthop);
 			}
 		}
 	}
@@ -1563,7 +1566,8 @@ void route_t::tunnel_value_compile(common::idp::updateGlobalBase::request& globa
 					                               interface_name,
 					                               0,
 					                               0,
-					                               1);
+					                               1,
+					                               default_nexthop);
 				}
 			}
 		}
@@ -1582,7 +1586,8 @@ void route_t::tunnel_value_compile(common::idp::updateGlobalBase::request& globa
 					                               interface_name,
 					                               0,
 					                               0,
-					                               1);
+					                               1,
+					                               default_nexthop);
 				}
 			}
 		}
@@ -1625,7 +1630,7 @@ void route_t::tunnel_value_compile(common::idp::updateGlobalBase::request& globa
 		/// same numa
 		for (const auto& item : request_interface)
 		{
-			const auto& [nexthop, egress_interface_id, label, egress_interface_name, peer_id, origin_as, weight] = item;
+			const auto& [nexthop, egress_interface_id, label, egress_interface_name, peer_id, origin_as, weight, neighbor_nexthop] = item;
 			(void)egress_interface_name;
 
 			if (exist(interfaces, egress_interface_id))
@@ -1633,12 +1638,12 @@ void route_t::tunnel_value_compile(common::idp::updateGlobalBase::request& globa
 				const auto counter_ids = tunnel_counter.get_ids({fallback.is_ipv4(), peer_id, nexthop, origin_as});
 
 				uint16_t flags = 0;
-				if (nexthop.is_default())
+				if (neighbor_nexthop.is_default())
 				{
 					flags |= YANET_NEXTHOP_FLAG_DIRECTLY;
 				}
 
-				update_nexthops.emplace_back(egress_interface_id, counter_ids[0], label, nexthop, flags);
+				update_nexthops.emplace_back(egress_interface_id, counter_ids[0], label, nexthop, neighbor_nexthop, flags);
 				weights.emplace_back(weight);
 
 				tunnel_value_lookup[value_id][socket_id].emplace_back(nexthop,
@@ -1657,18 +1662,18 @@ void route_t::tunnel_value_compile(common::idp::updateGlobalBase::request& globa
 		{
 			for (const auto& item : request_interface)
 			{
-				const auto& [nexthop, egress_interface_id, label, egress_interface_name, peer_id, origin_as, weight] = item;
+				const auto& [nexthop, egress_interface_id, label, egress_interface_name, peer_id, origin_as, weight, neighbor_nexthop] = item;
 				(void)egress_interface_name;
 
 				const auto counter_ids = tunnel_counter.get_ids({fallback.is_ipv4(), peer_id, nexthop, origin_as});
 
 				uint16_t flags = 0;
-				if (nexthop.is_default())
+				if (neighbor_nexthop.is_default())
 				{
 					flags |= YANET_NEXTHOP_FLAG_DIRECTLY;
 				}
 
-				update_nexthops.emplace_back(egress_interface_id, counter_ids[0], label, nexthop, flags);
+				update_nexthops.emplace_back(egress_interface_id, counter_ids[0], label, nexthop, neighbor_nexthop, flags);
 				weights.emplace_back(weight);
 
 				tunnel_value_lookup[value_id][socket_id].emplace_back(nexthop,

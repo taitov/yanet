@@ -821,15 +821,15 @@ void config_converter_t::acl_rules_route_local(controlplane::base::acl_t& acl,
 	{
 		(void)interfaceName;
 
-		for (const auto& ipAddress : interface.ipAddresses)
+		for (const auto& ip_prefix : interface.ip_prefixes)
 		{
-			if (ipAddress.is_ipv4())
+			if (ip_prefix.is_ipv4())
 			{
-				rule_network_ipv4.destinationPrefixes.emplace(ipAddress.get_ipv4());
+				rule_network_ipv4.destinationPrefixes.emplace(ip_prefix.address());
 			}
 			else
 			{
-				rule_network_ipv6.destinationPrefixes.emplace(ipAddress.get_ipv6());
+				rule_network_ipv6.destinationPrefixes.emplace(ip_prefix.address());
 			}
 		}
 	}

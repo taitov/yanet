@@ -15,8 +15,12 @@
 namespace route
 {
 
+using directly_connected_destination_t = std::tuple<tInterfaceId, ///< interface_id
+                                                    std::string>; ///< interface_name
+
 using destination_t = std::variant<std::set<std::tuple<ip_address_t,
                                                        std::vector<uint32_t>>>,
+                                   directly_connected_destination_t,
                                    uint32_t>; ///< virtual_port_id
 
 using value_key_t = std::tuple<std::tuple<std::string, ///< vrf
@@ -183,7 +187,7 @@ public:
 	void reload_after() override;
 	void mac_addresses_changed() override;
 
-	void prefix_update(const std::tuple<std::string, uint32_t>& vrf_priority, const ip_prefix_t& prefix, const std::vector<rib::pptn_t>& pptns, const std::variant<std::monostate, rib::nexthop_map_t, uint32_t>& value);
+	void prefix_update(const std::tuple<std::string, uint32_t>& vrf_priority, const ip_prefix_t& prefix, const std::vector<rib::pptn_t>& pptns, const std::variant<std::monostate, rib::nexthop_map_t, route::directly_connected_destination_t, uint32_t>& value);
 	void tunnel_prefix_update(const std::tuple<std::string, uint32_t>& vrf_priority_orig, const ip_prefix_t& prefix, const std::variant<std::monostate, rib::nexthop_map_t, uint32_t, std::tuple<>>& value);
 
 	void prefix_flush();

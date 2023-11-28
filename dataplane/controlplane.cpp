@@ -1,6 +1,8 @@
 #include <linux/if.h>
+#include <linux/rtnetlink.h>
 #include <sys/ioctl.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 #include <rte_errno.h>
 #include <rte_ethdev.h>
@@ -2105,26 +2107,140 @@ unsigned cControlPlane::ring_handle(rte_ring* ring_to_free_mbuf,
 	return rxSize;
 }
 
+/// XXX: move
+static void neighbor_monitor_parse(const char* buffer, const unsigned int buffer_length)
+{
+	(void)buffer;
+	(void)buffer_length;
+	//	unsigned int offset = 0;
+	//	while (offset + sizeof(nlmsghdr) <= buffer_length)
+	//	{
+	//		nlmsghdr* nl_message_header = (nlmsghdr*)(buffer + offset);
+	//		uint32_t length = nl_message_header->nlmsg_len;
+
+	//		//		if ((length < 0) ||
+	//		//		    (len > raw_msg_len) ||
+	//		//		    (!NLMSG_OK(nlmp, raw_msg_len)))
+	//		//		{
+	//		//			YANET_LOG_ERROR("invalid length: %u\n", length);
+	//		//			printf("error\n");
+	//		//			// Should processing of the message continue if there are certain types of problems?
+	//		//		}
+
+	//		for (; RTA_OK(rtatp, rtattrlen); rtatp = RTA_NEXT(rtatp, rtattrlen))
+	//		{
+	//			printf("type: %u\n", rtatp->rta_type);
+	//			if (rtatp->rta_type == NDA_DST)
+	//			{
+	//				inp = (struct in_addr*)RTA_DATA(rtatp);
+	//				inet_ntop(AF_INET, inp, ipv4string, INET_ADDRSTRLEN);
+	//				printf("  addr: %s\n", ipv4string);
+	//			}
+	//			else if (rtatp->rta_type == NDA_LLADDR)
+	//			{
+	//				printf("  lladdr: %u - %d - %lu\n", rtatp->rta_len, rtattrlen, RTA_PAYLOAD(rtatp));
+	//			}
+	//		}
+	//	}
+
+	//	while (buffer_length > sizeof(nlmsghdr))
+	//	{
+	//		nlmsghdr* nl_message_header = (nlmsghdr*)(buffer + offset);
+
+	//		uint32_t length = nl_message_header->nlmsg_len;
+
+	//		buffer_length -= NLMSG_ALIGN(length);
+	//		nl_message_header = (nlmsghdr*)((char*)nl_message_header + NLMSG_ALIGN(length));
+	//	}
+	//	return;
+}
+
+static void neighbor_monitor(const std::function<void(const std::string&, const common::ip_address_t&, const common::mac_address_t&)>& callback)
+{
+	(void)callback; ///< callback
+
+	int nl_socket = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (nl_socket < 0)
+	{
+		YANET_LOG_ERROR("socket(): %s\n", strerror(errno));
+		return;
+	}
+
+	sockaddr_nl nl_sockaddr;
+	bzero(&nl_sockaddr, sizeof(nl_sockaddr));
+	nl_sockaddr.nl_family = AF_NETLINK;
+	nl_sockaddr.nl_groups = 1u << (RTNLGRP_NEIGH - 1);
+
+	if (bind(nl_socket, (sockaddr*)&nl_sockaddr, sizeof(nl_sockaddr)) < 0)
+	{
+		YANET_LOG_ERROR("bind(): %s\n", strerror(errno));
+		return;
+	}
+
+	char buffer[4096];
+	for (;;)
+	{
+		int buffer_length = recv(nl_socket, buffer, sizeof(buffer), 0);
+		if (buffer_length > 0)
+		{
+			neighbor_monitor_parse(buffer, buffer_length);
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	close(nl_socket);
+}
+
 void cControlPlane::neighbor_thread()
 {
 	for (;;)
 	{
-		//		dataplane::neighbor::key_v4 key;
-		//		key.interface_id = 1;
-		//		key.address = ipv4_address_t::convert({"200.0.0.1"});
+		neighbor_monitor([&](const std::string& interface_name,
+		                     const common::ip_address_t& ip_address,
+		                     const common::mac_address_t& mac_address) {
+			(void)interface_name; ///< XXX
 
-		//		dataplane::neighbor::value value;
+			dataplane::neighbor::value value;
+			memcpy(value.ether_address.addr_bytes, mac_address.data(), 6);
 
-		//		for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)
-		//		{
-		//			(void)core_id;
-		//			worker_gc->run_on_this_thread([&, worker_gc = worker_gc]() {
-		//				auto* atomic = worker_gc->base_permanently.globalBaseAtomic;
-		//				atomic->neighbor_v4->insert_or_update(key, value);
-		//				return true;
-		//			});
-		//		}
+			if (ip_address.is_ipv4())
+			{
+				dataplane::neighbor::key_v4 key;
+				//				key.interface_id = interface_id;
+				key.address = ipv4_address_t::convert(ip_address.get_ipv4());
 
+				for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)
+				{
+					(void)core_id;
+					worker_gc->run_on_this_thread([&, worker_gc = worker_gc]() {
+						auto* globalbase_atomic = worker_gc->base_permanently.globalBaseAtomic;
+						globalbase_atomic->neighbor_v4->insert_or_update(key, value);
+						return true;
+					});
+				}
+			}
+			else
+			{
+				dataplane::neighbor::key_v6 key;
+				//				key.interface_id = interface_id;
+				key.address = ipv6_address_t::convert(ip_address.get_ipv6());
+
+				for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)
+				{
+					(void)core_id;
+					worker_gc->run_on_this_thread([&, worker_gc = worker_gc]() {
+						auto* atomic = worker_gc->base_permanently.globalBaseAtomic;
+						atomic->neighbor_v6->insert_or_update(key, value);
+						return true;
+					});
+				}
+			}
+		});
+
+		YANET_LOG_WARNING("restart neighbor_monitor\n");
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 }

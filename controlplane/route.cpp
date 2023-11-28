@@ -49,7 +49,7 @@ eResult route_t::init()
 	return eResult::success;
 }
 
-void route_t::prefix_update(const std::tuple<std::string, uint32_t>& vrf_priority, const ip_prefix_t& prefix, const std::vector<rib::pptn_t>& pptns, const std::variant<std::monostate, rib::nexthop_map_t, uint32_t>& value)
+void route_t::prefix_update(const std::tuple<std::string, uint32_t>& vrf_priority, const ip_prefix_t& prefix, const std::vector<rib::pptn_t>& pptns, const std::variant<std::monostate, rib::nexthop_map_t, route::directly_connected_destination_t, uint32_t>& value)
 {
 	const auto& [vrf, priority] = vrf_priority;
 
@@ -111,6 +111,10 @@ void route_t::prefix_update(const std::tuple<std::string, uint32_t>& vrf_priorit
 	else if (const auto virtual_port_id = std::get_if<uint32_t>(&value))
 	{
 		destination_next = *virtual_port_id;
+	}
+	else if (const auto directly_connected = std::get_if<route::directly_connected_destination_t>(&value))
+	{
+		destination_next = *directly_connected;
 	}
 
 	if (destination_next)
@@ -548,7 +552,7 @@ common::icp::route_interface::response route_t::route_interface() const
 			{
 				auto& [addresses, neighbor_v4, neighbor_v6, neighbor_mac_address_v4, neighbor_mac_address_v6, next_module] = response[{route_name, interface_name}];
 
-				addresses = interface.ipAddresses;
+				addresses = interface.ip_prefixes;
 				neighbor_v4 = interface.neighborIPv4Address;
 				neighbor_v6 = interface.neighborIPv6Address;
 
@@ -884,6 +888,49 @@ void route_t::reload(const controlplane::base_t& base_prev,
 				                     std::tuple<>());
 			}
 		}
+
+		for (const auto& [config_module_name, config_module] : base_prev.routes)
+		{
+			(void)config_module_name;
+
+			for (const auto& [interface_name, interface] : config_module.interfaces)
+			{
+				(void)interface_name;
+
+				for (const auto& ip_prefix : interface.ip_prefixes)
+				{
+					if (!ip_prefix.is_host())
+					{
+						prefix_update({"default", YANET_RIB_PRIORITY_ROUTE_REPEAT},
+						              ip_prefix.applyMask(ip_prefix.mask()),
+						              {},
+						              std::monostate());
+					}
+				}
+			}
+		}
+
+		for (const auto& [config_module_name, config_module] : base_next.routes)
+		{
+			(void)config_module_name;
+
+			for (const auto& [interface_name, interface] : config_module.interfaces)
+			{
+				for (const auto& ip_prefix : interface.ip_prefixes)
+				{
+					if (!ip_prefix.is_host())
+					{
+						route::directly_connected_destination_t directly_connected = {interface.interfaceId,
+						                                                              interface_name};
+
+						prefix_update({"default", YANET_RIB_PRIORITY_ROUTE_REPEAT},
+						              ip_prefix.applyMask(ip_prefix.mask()),
+						              {},
+						              directly_connected);
+					}
+				}
+			}
+		}
 	}
 
 #ifdef CONFIG_YADECAP_AUTOTEST
@@ -1099,6 +1146,16 @@ void route_t::value_compile(common::idp::updateGlobalBase::request& globalbase,
 		});
 
 		return;
+	}
+	else if (const auto directly_connected = std::get_if<route::directly_connected_destination_t>(&destination))
+	{
+		const auto& [interface_id, interface_name] = *directly_connected;
+
+		request_interface.emplace_back(ipv4_address_t(), ///< default
+		                               interface_id,
+		                               interface_name,
+		                               std::vector<uint32_t>(),
+		                               ipv4_address_t()); ///< default
 	}
 
 	for (const auto& destination_iter : std::get<0>(destination)) ///< interface

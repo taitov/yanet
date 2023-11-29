@@ -1157,66 +1157,68 @@ void route_t::value_compile(common::idp::updateGlobalBase::request& globalbase,
 		                               std::vector<uint32_t>(),
 		                               ipv4_address_t()); ///< default
 	}
-
-	for (const auto& destination_iter : std::get<0>(destination)) ///< interface
+	else
 	{
-		const auto& [nexthop, labels] = destination_iter;
-
-		auto interface = generation.get_interface_by_neighbor(nexthop);
-		if (interface)
+		for (const auto& destination_iter : std::get<0>(destination)) ///< interface
 		{
-			const auto& [interface_id, interface_name] = **interface;
+			const auto& [nexthop, labels] = destination_iter;
 
-			if (labels.size() > 2)
+			auto interface = generation.get_interface_by_neighbor(nexthop);
+			if (interface)
+			{
+				const auto& [interface_id, interface_name] = **interface;
+
+				if (labels.size() > 2)
+				{
+					YANET_LOG_WARNING("wrong labels count '%lu'\n",
+					                  labels.size());
+					continue;
+				}
+
+				request_interface.emplace_back(nexthop,
+				                               interface_id,
+				                               interface_name,
+				                               labels,
+				                               nexthop);
+
+				continue;
+			}
+
+			if (labels.size() > 1)
 			{
 				YANET_LOG_WARNING("wrong labels count '%lu'\n",
 				                  labels.size());
 				continue;
 			}
 
-			request_interface.emplace_back(nexthop,
-			                               interface_id,
-			                               interface_name,
-			                               labels,
-			                               nexthop);
+			ip_prefix_t prefix_next;
+			if (nexthop.is_ipv4())
+			{
+				prefix_next = {nexthop, 32};
+			}
+			else
+			{
+				prefix_next = {nexthop, 128};
+			}
 
-			continue;
-		}
+			auto& [priority_current, update] = prefixes[vrf];
+			auto& current = priority_current[priority];
+			(void)update;
 
-		if (labels.size() > 1)
-		{
-			YANET_LOG_WARNING("wrong labels count '%lu'\n",
-			                  labels.size());
-			continue;
-		}
-
-		ip_prefix_t prefix_next;
-		if (nexthop.is_ipv4())
-		{
-			prefix_next = {nexthop, 32};
-		}
-		else
-		{
-			prefix_next = {nexthop, 128};
-		}
-
-		auto& [priority_current, update] = prefixes[vrf];
-		auto& current = priority_current[priority];
-		(void)update;
-
-		const auto value_id_label = current.get(prefix_next);
-		if (value_id_label)
-		{
-			value_compile_label(globalbase,
-			                    generation,
-			                    *value_id_label,
-			                    labels,
-			                    request_interface,
-			                    nexthop);
-		}
-		else
-		{
-			/// @todo: stats
+			const auto value_id_label = current.get(prefix_next);
+			if (value_id_label)
+			{
+				value_compile_label(globalbase,
+				                    generation,
+				                    *value_id_label,
+				                    labels,
+				                    request_interface,
+				                    nexthop);
+			}
+			else
+			{
+				/// @todo: stats
+			}
 		}
 	}
 

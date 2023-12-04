@@ -229,6 +229,10 @@ eResult generation::update(const common::idp::updateGlobalBase::request& request
 			result = eResult::success;
 			serial = std::get<common::idp::updateGlobalBase::serial_update::request>(data);
 		}
+		else if (type == common::idp::updateGlobalBase::requestType::nat46stateless_update)
+		{
+			result = nat46stateless_update(std::get<common::idp::updateGlobalBase::nat46stateless_update::request>(data));
+		}
 		else
 		{
 			YADECAP_LOG_ERROR("invalid request type\n");
@@ -325,16 +329,16 @@ eResult generation::get(const common::idp::getGlobalBase::request& request,
 	/** @todo
 	for (const auto& interfaceId : std::get<2>(request))
 	{
-		if (interfaceId >= CONFIG_YADECAP_INTERFACES_SIZE)
-		{
-			YADECAP_LOG_ERROR("invalid interfaceId: '%u'\n", interfaceId);
-			return eResult::invalidInterfaceId;
-		}
+	        if (interfaceId >= CONFIG_YADECAP_INTERFACES_SIZE)
+	        {
+	                YADECAP_LOG_ERROR("invalid interfaceId: '%u'\n", interfaceId);
+	                return eResult::invalidInterfaceId;
+	        }
 
-		const auto& interface = interfaces[interfaceId];
+	        const auto& interface = interfaces[interfaceId];
 
-		std::get<2>(globalBaseResponse)[interfaceId] = {convert(interface.neighborEtherAddress),
-		                                                interface.flow};
+	        std::get<2>(globalBaseResponse)[interfaceId] = {convert(interface.neighborEtherAddress),
+	                                                        interface.flow};
 	}
 	*/
 
@@ -733,6 +737,12 @@ eResult generation::tun64mappings_update(const common::idp::updateGlobalBase::tu
 			return eResult::isFull;
 		}
 	}
+	return eResult::success;
+}
+
+eResult generation::nat46stateless_update(const common::idp::updateGlobalBase::nat46stateless_update::request& request)
+{
+	(void)request;
 	return eResult::success;
 }
 

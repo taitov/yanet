@@ -156,6 +156,7 @@ enum class requestType : uint32_t
 	tun64mappings_update,
 	serial_update,
 	dump_tags_ids,
+	nat46stateless_update,
 	enum_size ///< size should always be at the bottom of the list, this enum allows us to find out the size of the enum list
 };
 
@@ -227,6 +228,17 @@ using request = std::tuple<nat64stateful_id_t,
 namespace nat64stateful_pool_update
 {
 using request = std::vector<ipv4_prefix_t>;
+}
+
+namespace nat46stateless_update
+{
+using request = std::tuple<nat46stateless_id_t,
+                           eDscpMarkType, ///< lan_dscp_type
+                           uint8_t, ///< lan_dscp
+                           eDscpMarkType, ///< wan_dscp_type
+                           uint8_t, ///< wan_dscp
+                           tCounterId,
+                           common::globalBase::flow_t>;
 }
 
 namespace updateNat64stateless
@@ -504,7 +516,8 @@ using requestVariant = std::variant<std::tuple<>,
                                     dregress_value_update::request,
                                     fwstate_synchronization_update::request,
                                     sampler_update::request, /// + update_early_decap_flags::request
-                                    serial_update::request>;
+                                    serial_update::request,
+                                    nat46stateless_update::request>;
 
 using request = std::vector<std::tuple<requestType,
                                        requestVariant>>;

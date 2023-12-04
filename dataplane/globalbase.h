@@ -53,9 +53,9 @@ struct transport_layer_t
 	struct
 	{
 		/** @todo:
-			flat<uint8_t> type;
-			flat<uint8_t> code;
-			*/
+		        flat<uint8_t> type;
+		        flat<uint8_t> code;
+		        */
 		flat<uint16_t> type_code;
 		flat<uint16_t> identifier;
 	} icmp;
@@ -182,6 +182,7 @@ protected:
 	eResult fwstate_synchronization_update(const common::idp::updateGlobalBase::fwstate_synchronization_update::request& request);
 	eResult tun64_update(const common::idp::updateGlobalBase::tun64_update::request& request);
 	eResult tun64mappings_update(const common::idp::updateGlobalBase::tun64mappings_update::request& request);
+	eResult nat46stateless_update(const common::idp::updateGlobalBase::nat46stateless_update::request& request);
 
 	void evaluate_service_ring(uint32_t next_balancer_reals_id);
 	inline uint64_t count_real_connections(uint32_t counter_id);

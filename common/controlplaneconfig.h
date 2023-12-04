@@ -480,4 +480,51 @@ public:
 
 }
 
+namespace nat46stateless
+{
+
+class config_t
+{
+public:
+	config_t() :
+	        dscp_mark_type(common::eDscpMarkType::never),
+	        dscp(0)
+	{
+	}
+
+	void pop(common::stream_in_t& stream)
+	{
+		stream.pop(nat46stateless_id);
+		stream.pop(dscp_mark_type);
+		stream.pop(dscp);
+		stream.pop(ipv6_prefixes);
+		stream.pop(ipv4_prefixes);
+		stream.pop(announces);
+		stream.pop(next_module);
+	}
+
+	void push(common::stream_out_t& stream) const
+	{
+		stream.push(nat46stateless_id);
+		stream.push(dscp_mark_type);
+		stream.push(dscp);
+		stream.push(ipv6_prefixes);
+		stream.push(ipv4_prefixes);
+		stream.push(announces);
+		stream.push(next_module);
+	}
+
+public:
+	nat46stateless_id_t nat46stateless_id;
+	common::eDscpMarkType dscp_mark_type;
+	uint8_t dscp;
+	std::vector<common::ipv6_prefix_t> ipv6_prefixes;
+	std::vector<common::ipv4_prefix_t> ipv4_prefixes;
+	std::set<common::ip_prefix_t> announces;
+	std::string next_module;
+	common::globalBase::flow_t flow;
+};
+
+}
+
 }

@@ -57,3 +57,17 @@ enum class module_counter : tCounterId
 };
 
 }
+
+namespace nat46stateless
+{
+
+enum class module_counter : tCounterId
+{
+	lan_packets,
+	lan_bytes,
+	wan_packets,
+	wan_bytes,
+	size
+};
+
+}

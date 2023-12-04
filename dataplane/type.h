@@ -348,6 +348,12 @@ struct tNat64stateless
 	/// @todo: egressFlow;
 };
 
+struct nat46stateless_t
+{
+	tCounterId counter_id;
+	common::globalBase::tFlow flow;
+};
+
 static_assert(CONFIG_YADECAP_INTERFACES_SIZE <= 0xFFFF, "invalid size");
 
 struct balancer_t

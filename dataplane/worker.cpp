@@ -3575,6 +3575,122 @@ inline void cWorker::nat64stateless_egress_translation(rte_mbuf* mbuf,
 	preparePacket(mbuf);
 }
 
+inline void cWorker::nat46stateless_lan_entry(rte_mbuf* mbuf)
+{
+	nat46stateless_lan_stack.insert(mbuf);
+}
+
+inline void cWorker::nat46stateless_lan_handle()
+{
+	const auto& base = bases[localBaseId & 1];
+
+	if (unlikely(nat46stateless_lan_stack.mbufsCount == 0))
+	{
+		return;
+	}
+
+	for (unsigned int mbuf_i = 0;
+	     mbuf_i < nat46stateless_lan_stack.mbufsCount;
+	     mbuf_i++)
+	{
+		rte_mbuf* mbuf = nat46stateless_lan_stack.mbufs[mbuf_i];
+		dataplane::metadata* metadata = YADECAP_METADATA(mbuf);
+
+		const auto& nat46stateless = base.globalBase->nat46statelesses[metadata->flow.data.nat46stateless_id];
+
+		nat46stateless_lan_translation(mbuf);
+		nat46stateless_lan_flow(mbuf, nat46stateless.flow);
+	}
+
+	nat46stateless_lan_stack.clear();
+}
+
+inline void cWorker::nat46stateless_lan_translation(rte_mbuf* mbuf)
+{
+	(void)mbuf;
+}
+
+inline void cWorker::nat46stateless_lan_flow(rte_mbuf* mbuf, const common::globalBase::tFlow& flow)
+{
+	dataplane::metadata* metadata = YADECAP_METADATA(mbuf);
+	metadata->flow = flow;
+
+	if (flow.type == common::globalBase::eFlowType::route)
+	{
+		route_entry(mbuf);
+	}
+	else if (flow.type == common::globalBase::eFlowType::route_tunnel)
+	{
+		route_tunnel_entry(mbuf);
+	}
+	else if (flow.type == common::globalBase::eFlowType::controlPlane)
+	{
+		controlPlane(mbuf);
+	}
+	else
+	{
+		drop(mbuf);
+	}
+}
+
+inline void cWorker::nat46stateless_wan_entry(rte_mbuf* mbuf)
+{
+	nat46stateless_wan_stack.insert(mbuf);
+}
+
+inline void cWorker::nat46stateless_wan_handle()
+{
+	const auto& base = bases[localBaseId & 1];
+
+	if (unlikely(nat46stateless_wan_stack.mbufsCount == 0))
+	{
+		return;
+	}
+
+	for (unsigned int mbuf_i = 0;
+	     mbuf_i < nat46stateless_wan_stack.mbufsCount;
+	     mbuf_i++)
+	{
+		rte_mbuf* mbuf = nat46stateless_wan_stack.mbufs[mbuf_i];
+		dataplane::metadata* metadata = YADECAP_METADATA(mbuf);
+
+		const auto& nat46stateless = base.globalBase->nat46statelesses[metadata->flow.data.nat46stateless_id];
+
+		nat46stateless_wan_translation(mbuf);
+		nat46stateless_wan_flow(mbuf, nat46stateless.flow);
+	}
+
+	nat46stateless_wan_stack.clear();
+}
+
+inline void cWorker::nat46stateless_wan_translation(rte_mbuf* mbuf)
+{
+	(void)mbuf;
+}
+
+inline void cWorker::nat46stateless_wan_flow(rte_mbuf* mbuf, const common::globalBase::tFlow& flow)
+{
+	dataplane::metadata* metadata = YADECAP_METADATA(mbuf);
+	metadata->flow = flow;
+
+	if (flow.type == common::globalBase::eFlowType::route)
+	{
+		route_entry(mbuf);
+	}
+	else if (flow.type == common::globalBase::eFlowType::route_tunnel)
+	{
+		route_tunnel_entry(mbuf);
+	}
+	else if (flow.type == common::globalBase::eFlowType::controlPlane)
+	{
+		controlPlane(mbuf);
+	}
+	else
+	{
+		drop(mbuf);
+	}
+}
+
 inline void cWorker::balancer_entry(rte_mbuf* mbuf)
 {
 	balancer_stack.insert(mbuf);

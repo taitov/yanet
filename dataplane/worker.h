@@ -147,6 +147,18 @@ protected:
 	inline void nat64stateless_egress_flow(rte_mbuf* mbuf, const common::globalBase::tFlow& flow);
 	inline void nat64stateless_egress_translation(rte_mbuf* mbuf, const dataplane::globalBase::nat64stateless_translation_t& translation);
 
+	/// nat46stateless lan (ipv4)
+	inline void nat46stateless_lan_entry(rte_mbuf* mbuf);
+	inline void nat46stateless_lan_handle();
+	inline void nat46stateless_lan_translation(rte_mbuf* mbuf);
+	inline void nat46stateless_lan_flow(rte_mbuf* mbuf, const common::globalBase::tFlow& flow);
+
+	/// nat46stateless wan (ipv6)
+	inline void nat46stateless_wan_entry(rte_mbuf* mbuf);
+	inline void nat46stateless_wan_handle();
+	inline void nat46stateless_wan_translation(rte_mbuf* mbuf);
+	inline void nat46stateless_wan_flow(rte_mbuf* mbuf, const common::globalBase::tFlow& flow);
+
 	inline void balancer_entry(rte_mbuf* mbuf);
 	inline void balancer_icmp_reply_entry(rte_mbuf* mbuf);
 	inline void balancer_icmp_forward_entry(rte_mbuf* mbuf);
@@ -283,6 +295,8 @@ protected:
 	worker::tStack<> nat64stateful_wan_stack;
 	worker::tStack<> nat64stateless_ingress_stack;
 	worker::tStack<> nat64stateless_egress_stack;
+	worker::tStack<> nat46stateless_lan_stack;
+	worker::tStack<> nat46stateless_wan_stack;
 	worker::tStack<> balancer_stack;
 	worker::tStack<> balancer_icmp_reply_stack;
 	worker::tStack<> balancer_icmp_forward_stack;

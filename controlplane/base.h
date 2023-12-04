@@ -448,6 +448,7 @@ public:
 	std::map<std::string, base::decap_t> decaps;
 	std::map<std::string, nat64stateful::config_t> nat64statefuls;
 	std::map<std::string, base::nat64stateless_t> nat64statelesses;
+	std::map<std::string, nat46stateless::config_t> nat46statelesses;
 	std::map<std::string, base::acl_t> acls;
 	std::map<std::string, dregress::config_t> dregresses;
 	std::map<std::string, balancer::config_t> balancers;

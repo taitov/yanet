@@ -216,6 +216,7 @@ public: ///< @todo
 	tInterface interfaces[CONFIG_YADECAP_INTERFACES_SIZE];
 	nat64stateful_t nat64statefuls[YANET_CONFIG_NAT64STATEFULS_SIZE];
 	tNat64stateless nat64statelesses[CONFIG_YADECAP_NAT64STATELESSES_SIZE];
+	nat46stateless_t nat46statelesses[YANET_CONFIG_NAT46STATELESSES_SIZE];
 	balancer_t balancers[YANET_CONFIG_BALANCERS_SIZE];
 	dregress_t dregresses[CONFIG_YADECAP_DREGRESS_SIZE]; ///< @todo: slow global base
 	fw_state_sync_config_t fw_state_sync_configs[CONFIG_YADECAP_ACLS_SIZE];

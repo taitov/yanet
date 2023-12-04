@@ -30,6 +30,7 @@ using tRouteId = uint32_t;
 using nat64stateful_id_t = uint32_t;
 using tNat64statelessId = uint32_t;
 using tNat64statelessTranslationId = uint32_t;
+using nat46stateless_id_t = uint32_t;
 using tAclId = uint32_t;
 using tAclRuleId = uint32_t;
 using tAclGroupId = uint32_t;
@@ -2267,6 +2268,7 @@ union tFlowData
 	tDecapId decapId;
 	tRouteId routeId;
 	nat64stateful_id_t nat64stateful_id;
+	nat46stateless_id_t nat46stateless_id;
 	dregress_id_t dregressId;
 	tun64_id_t tun64Id;
 

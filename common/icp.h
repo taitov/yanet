@@ -576,6 +576,14 @@ using announce = std::tuple<std::string, ///< module
 using response = std::set<announce>;
 }
 
+namespace nat46stateless_announce
+{
+using announce = std::tuple<std::string, ///< module
+                            common::ip_prefix_t>;
+
+using response = std::set<announce>;
+}
+
 namespace getNat64statelessTranslations
 {
 using response = std::map<std::tuple<std::string, ///< moduleName

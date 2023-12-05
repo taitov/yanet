@@ -554,6 +554,12 @@ inline void cWorker::handlePackets()
 		nat64stateless_egress_handle();
 	}
 
+	if (globalbase.nat46stateless_enabled)
+	{
+		nat46stateless_lan_handle();
+		nat46stateless_wan_handle();
+	}
+
 	if (globalbase.balancer_enabled)
 	{
 		balancer_handle();
@@ -1386,6 +1392,14 @@ inline void cWorker::acl_ingress_flow(rte_mbuf* mbuf,
 	else if (flow.type == common::globalBase::eFlowType::nat64stateless_egress_farm)
 	{
 		nat64stateless_egress_entry_farm(mbuf);
+	}
+	else if (flow.type == common::globalBase::eFlowType::nat46stateless_lan)
+	{
+		nat46stateless_lan_entry(mbuf);
+	}
+	else if (flow.type == common::globalBase::eFlowType::nat46stateless_wan)
+	{
+		nat46stateless_wan_entry(mbuf);
 	}
 	else if (flow.type == common::globalBase::eFlowType::balancer)
 	{
@@ -3635,6 +3649,7 @@ inline void cWorker::nat46stateless_lan_flow(rte_mbuf* mbuf, const common::globa
 
 inline void cWorker::nat46stateless_wan_entry(rte_mbuf* mbuf)
 {
+	printf("XXX12\n");
 	nat46stateless_wan_stack.insert(mbuf);
 }
 

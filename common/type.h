@@ -2136,6 +2136,8 @@ enum class eFlowType : uint8_t
 	nat64stateless_egress_icmp,
 	nat64stateless_egress_fragmentation,
 	nat64stateless_egress_farm,
+	nat46stateless_lan,
+	nat46stateless_wan,
 	balancer,
 	balancer_icmp_reply,
 	balancer_icmp_forward,
@@ -2194,6 +2196,10 @@ inline const char* eFlowType_toString(eFlowType t)
 			return "nat64stateless_egress_fragmentation";
 		case eFlowType::nat64stateless_egress_farm:
 			return "nat64stateless_egress_farm";
+		case eFlowType::nat46stateless_lan:
+			return "nat46stateless_lan";
+		case eFlowType::nat46stateless_wan:
+			return "nat46stateless_wan";
 		case eFlowType::balancer:
 			return "balancer";
 		case eFlowType::balancer_icmp_reply:

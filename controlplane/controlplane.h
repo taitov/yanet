@@ -26,6 +26,7 @@
 #include "fqdn.h"
 #include "isystem.h"
 #include "module.h"
+#include "nat46stateless.h"
 #include "nat64stateful.h"
 #include "route.h"
 #include "tun64.h"
@@ -181,6 +182,7 @@ protected:
 	fqdn_t fqdn;
 	durations_t durations;
 	nat64stateful_t nat64stateful;
+	nat46stateless_t nat46stateless;
 
 	counter_manager_t counter_manager;
 

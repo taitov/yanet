@@ -231,6 +231,7 @@ public: ///< @todo
 	uint8_t sampler_enabled;
 	uint8_t tun64_enabled;
 	uint8_t early_decap_enabled;
+	uint8_t nat46stateless_enabled;
 
 	uint32_t serial;
 

@@ -28,6 +28,7 @@ eResult config_converter_t::process(uint32_t serial)
 		processDecap();
 		processNat64stateful();
 		processNat64();
+		processNat46stateless();
 		processTun64();
 		processBalancer();
 		processDregress();
@@ -237,6 +238,29 @@ void config_converter_t::convertToFlow(const std::string& nextModule,
 		}
 
 		flow.data.nat64stateless.id = it->second.nat64statelessId;
+	}
+	else if (moduleType == "nat46stateless")
+	{
+		if (entry == "lan")
+		{
+			flow.type = common::globalBase::eFlowType::nat46stateless_lan;
+		}
+		else if (entry == "wan")
+		{
+			flow.type = common::globalBase::eFlowType::nat46stateless_wan;
+		}
+		else
+		{
+			throw error_result_t(eResult::invalidFlow, "invalid entry: " + entry);
+		}
+
+		auto it = baseNext.nat46statelesses.find(moduleName);
+		if (it == baseNext.nat46statelesses.end())
+		{
+			throw error_result_t(eResult::invalidFlow, "invalid nextModule: " + nextModule);
+		}
+
+		flow.data.nat46stateless_id = it->second.nat46stateless_id;
 	}
 	else if (moduleType == "acl")
 	{
@@ -559,6 +583,31 @@ void config_converter_t::processNat64()
 	}
 }
 
+void config_converter_t::processNat46stateless()
+{
+	for (auto& [name, nat46stateless] : baseNext.nat46statelesses)
+	{
+		(void)name;
+
+		if (nat46stateless.nat46stateless_id >= YANET_CONFIG_NAT46STATELESSES_SIZE)
+		{
+			throw error_result_t(eResult::invalidId, "invalid nat46stateless_id: " + std::to_string(nat46stateless.nat46stateless_id));
+		}
+
+		convertToFlow(nat46stateless.next_module, nat46stateless.flow);
+
+		if (nat46stateless.flow.type != common::globalBase::eFlowType::route &&
+		    nat46stateless.flow.type != common::globalBase::eFlowType::route_tunnel &&
+		    nat46stateless.flow.type != common::globalBase::eFlowType::controlPlane &&
+		    nat46stateless.flow.type != common::globalBase::eFlowType::drop)
+		{
+			throw error_result_t(eResult::invalidFlow, "invalid flow type for nat46stateless: " + std::string(eFlowType_toString(nat46stateless.flow.type)));
+		}
+	}
+
+	/// continue in nat46stateless_t::compile()
+}
+
 void config_converter_t::processBalancer()
 {
 	uint64_t balancer_reals_count = 0;
@@ -740,6 +789,10 @@ void config_converter_t::processAcl()
 			else if (type == "nat64stateless")
 			{
 				acl_rules_nat64stateless(acl, nextModuleName, entry);
+			}
+			else if (type == "nat46stateless")
+			{
+				acl_rules_nat46stateless(acl, nextModuleName);
 			}
 			else if (type == "dregress")
 			{
@@ -1451,6 +1504,106 @@ void config_converter_t::acl_rules_nat64stateless_egress(controlplane::base::acl
 				                                                               egressPortRange.value()};
 				acl.nextModuleRules.emplace_back(rule_network, rule_transport, flow_drop);
 			}
+		}
+	}
+}
+
+void config_converter_t::acl_rules_nat46stateless(controlplane::base::acl_t& acl,
+                                                  const std::string& next_module) const
+{
+	const auto& nat46stateless = baseNext.nat46statelesses.at(next_module);
+
+	std::set<common::ipv6_prefix_t> ipv6_prefixes;
+	for (const auto& ipv6_prefix : nat46stateless.ipv6_prefixes)
+	{
+		ipv6_prefixes.emplace(ipv6_prefix);
+	}
+
+	std::set<common::ipv4_prefix_t> ipv4_prefixes;
+	for (const auto& ipv4_prefix : nat46stateless.ipv4_prefixes)
+	{
+		ipv4_prefixes.emplace(ipv4_prefix);
+	}
+
+	/// fragment
+	{
+		using fragState = controlplane::base::acl_rule_t::fragState;
+
+		auto flow_drop = convertToFlow("drop"); ///< @todo: reassembly flow
+
+		/// ipv6
+		{
+			controlplane::base::acl_rule_network_ipv6_t rule_network({common::ipv6_prefix_default}, ipv6_prefixes);
+
+			controlplane::base::acl_rule_t rule(rule_network, flow_drop);
+			rule.fragment = {fragState::firstFragment, fragState::notFirstFragment};
+
+			acl.nextModuleRules.emplace_back(rule);
+		}
+
+		/// ipv4
+		{
+			controlplane::base::acl_rule_network_ipv4_t rule_network({common::ipv4_prefix_default}, ipv4_prefixes);
+
+			controlplane::base::acl_rule_t rule(rule_network, flow_drop);
+			rule.fragment = {fragState::firstFragment, fragState::notFirstFragment};
+
+			acl.nextModuleRules.emplace_back(rule);
+		}
+	}
+
+	/// lan (ipv4 -> ipv6)
+	{
+		auto flow = convertToFlow(next_module, "lan");
+
+		controlplane::base::acl_rule_network_ipv4_t rule_network({common::ipv4_prefix_default}, ipv4_prefixes);
+
+		acl.nextModuleRules.emplace_back(rule_network,
+		                                 controlplane::acl_rule_transport_tcp_any,
+		                                 flow);
+
+		acl.nextModuleRules.emplace_back(rule_network,
+		                                 controlplane::acl_rule_transport_udp_any,
+		                                 flow);
+
+		acl.nextModuleRules.emplace_back(rule_network,
+		                                 controlplane::base::acl_rule_transport_icmpv4_t(ICMP_ECHOREPLY),
+		                                 flow);
+	}
+
+	/// wan (ipv6 -> ipv4)
+	{
+		auto flow = convertToFlow(next_module, "wan");
+
+		controlplane::base::acl_rule_network_ipv6_t rule_network({common::ipv6_prefix_default}, ipv6_prefixes);
+
+		acl.nextModuleRules.emplace_back(rule_network,
+		                                 controlplane::acl_rule_transport_tcp_any,
+		                                 flow);
+
+		acl.nextModuleRules.emplace_back(rule_network,
+		                                 controlplane::acl_rule_transport_udp_any,
+		                                 flow);
+
+		acl.nextModuleRules.emplace_back(rule_network,
+		                                 controlplane::base::acl_rule_transport_icmpv6_t(ICMP6_ECHO_REQUEST),
+		                                 flow);
+	}
+
+	/// other
+	{
+		auto flow_drop = convertToFlow("drop");
+
+		/// ipv6
+		{
+			controlplane::base::acl_rule_network_ipv6_t rule_network({common::ipv6_prefix_default}, ipv6_prefixes);
+			acl.nextModuleRules.emplace_back(rule_network, flow_drop);
+		}
+
+		/// ipv4
+		{
+			controlplane::base::acl_rule_network_ipv4_t rule_network({common::ipv4_prefix_default}, ipv4_prefixes);
+			acl.nextModuleRules.emplace_back(rule_network, flow_drop);
 		}
 	}
 }

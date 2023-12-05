@@ -403,6 +403,7 @@ eResult generation::clear()
 	decap_enabled = 0;
 	nat64stateful_enabled = 0;
 	nat64stateless_enabled = 0;
+	nat46stateless_enabled = 0;
 	balancer_enabled = 0;
 	acl_egress_enabled = 0;
 	sampler_enabled = 0;
@@ -742,7 +743,41 @@ eResult generation::tun64mappings_update(const common::idp::updateGlobalBase::tu
 
 eResult generation::nat46stateless_update(const common::idp::updateGlobalBase::nat46stateless_update::request& request)
 {
-	(void)request;
+	const auto& [nat46stateless_id, lan_dscp_type, lan_dscp, wan_dscp_type, wan_dscp, counter_id, flow] = request;
+
+	if (nat46stateless_id >= YANET_CONFIG_NAT46STATELESSES_SIZE)
+	{
+		YADECAP_LOG_ERROR("invalid nat46stateless_id: '%u'\n", nat46stateless_id);
+		return eResult::invalidId;
+	}
+
+	if (flow.type != common::globalBase::eFlowType::route &&
+	    flow.type != common::globalBase::eFlowType::route_tunnel &&
+	    flow.type != common::globalBase::eFlowType::controlPlane &&
+	    flow.type != common::globalBase::eFlowType::drop)
+	{
+		YADECAP_LOG_ERROR("invalid flow\n");
+		return eResult::invalidFlow;
+	}
+
+	if (!checkFlow(flow))
+	{
+		YADECAP_LOG_ERROR("invalid flow\n");
+		return eResult::invalidFlow;
+	}
+
+	auto& nat46stateless = nat46statelesses[nat46stateless_id];
+	nat46stateless.counter_id = counter_id;
+	nat46stateless.flow = flow;
+
+	/// XXX
+	(void)lan_dscp_type;
+	(void)lan_dscp;
+	(void)wan_dscp_type;
+	(void)wan_dscp;
+
+	nat46stateless_enabled = 1;
+
 	return eResult::success;
 }
 

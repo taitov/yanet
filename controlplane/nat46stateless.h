@@ -23,16 +23,15 @@ public:
 	{
 		(void)base_prev;
 
-		(void)base_next;
-//		config_nat64statefuls = base_next.nat64statefuls;
+		config_nat46statelesses = base_next.nat46statelesses;
 
-//		for (const auto& [name, nat64stateful] : base_next.nat64statefuls)
-//		{
-//			for (const auto& prefix : nat64stateful.announces)
-//			{
-//				announces.emplace(name, prefix);
-//			}
-//		}
+		//		for (const auto& [name, nat64stateful] : base_next.nat64statefuls)
+		//		{
+		//			for (const auto& prefix : nat64stateful.announces)
+		//			{
+		//				announces.emplace(name, prefix);
+		//			}
+		//		}
 	}
 
 public:

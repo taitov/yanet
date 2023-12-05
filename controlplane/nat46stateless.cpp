@@ -72,8 +72,26 @@ void nat46stateless_t::reload_after()
 void nat46stateless_t::compile(common::idp::updateGlobalBase::request& globalbase,
                                nat46stateless::generation_config_t& generation_config)
 {
-	(void)globalbase;
-	(void)generation_config;
-	//	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::nat64stateful_pool_update,
-	//	                        std::move(pool));
+	for (const auto& [name, nat46stateless] : generation_config.config_nat46statelesses)
+	{
+		const auto counter_id = module_counters.get_id(name);
+
+		globalbase.emplace_back(common::idp::updateGlobalBase::requestType::nat46stateless_update,
+		                        common::idp::updateGlobalBase::nat46stateless_update::request(nat46stateless.nat46stateless_id,
+		                                                                                      common::eDscpMarkType::never,
+		                                                                                      0,
+		                                                                                      common::eDscpMarkType::never,
+		                                                                                      0,
+		                                                                                      counter_id,
+		                                                                                      nat46stateless.flow));
+	}
+}
+
+void nat46stateless_t::counters_gc_thread()
+{
+	while (!flagStop)
+	{
+		module_counters.gc();
+		std::this_thread::sleep_for(std::chrono::seconds(30));
+	}
 }

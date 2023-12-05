@@ -495,6 +495,8 @@ public:
 	void pop(common::stream_in_t& stream)
 	{
 		stream.pop(nat46stateless_id);
+		stream.pop(ipv6_source);
+		stream.pop(ipv6_destination);
 		stream.pop(dscp_mark_type);
 		stream.pop(dscp);
 		stream.pop(ipv6_prefixes);
@@ -506,6 +508,8 @@ public:
 	void push(common::stream_out_t& stream) const
 	{
 		stream.push(nat46stateless_id);
+		stream.push(ipv6_source);
+		stream.push(ipv6_destination);
 		stream.push(dscp_mark_type);
 		stream.push(dscp);
 		stream.push(ipv6_prefixes);
@@ -516,6 +520,8 @@ public:
 
 public:
 	nat46stateless_id_t nat46stateless_id;
+	common::ipv6_address_t ipv6_source;
+	common::ipv6_address_t ipv6_destination;
 	common::eDscpMarkType dscp_mark_type;
 	uint8_t dscp;
 	std::vector<common::ipv6_prefix_t> ipv6_prefixes;

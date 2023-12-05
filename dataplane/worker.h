@@ -150,13 +150,13 @@ protected:
 	/// nat46stateless lan (ipv4)
 	inline void nat46stateless_lan_entry(rte_mbuf* mbuf);
 	inline void nat46stateless_lan_handle();
-	inline void nat46stateless_lan_translation(rte_mbuf* mbuf);
+	inline void nat46stateless_lan_translation(rte_mbuf* mbuf, const dataplane::globalBase::nat46stateless_t& nat46stateless);
 	inline void nat46stateless_lan_flow(rte_mbuf* mbuf, const common::globalBase::tFlow& flow);
 
 	/// nat46stateless wan (ipv6)
 	inline void nat46stateless_wan_entry(rte_mbuf* mbuf);
 	inline void nat46stateless_wan_handle();
-	inline void nat46stateless_wan_translation(rte_mbuf* mbuf);
+	inline void nat46stateless_wan_translation(rte_mbuf* mbuf, const dataplane::globalBase::nat46stateless_t& nat46stateless);
 	inline void nat46stateless_wan_flow(rte_mbuf* mbuf, const common::globalBase::tFlow& flow);
 
 	inline void balancer_entry(rte_mbuf* mbuf);
@@ -237,6 +237,7 @@ protected:
 
 	uint32_t nat64stateful_packet_id;
 	uint32_t nat64statelessPacketId;
+	uint32_t nat46stateless_packet_id;
 
 	uint32_t hashes[CONFIG_YADECAP_MBUFS_BURST_SIZE];
 

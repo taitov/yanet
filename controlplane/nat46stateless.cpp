@@ -78,6 +78,8 @@ void nat46stateless_t::compile(common::idp::updateGlobalBase::request& globalbas
 
 		globalbase.emplace_back(common::idp::updateGlobalBase::requestType::nat46stateless_update,
 		                        common::idp::updateGlobalBase::nat46stateless_update::request(nat46stateless.nat46stateless_id,
+		                                                                                      nat46stateless.ipv6_source,
+		                                                                                      nat46stateless.ipv6_destination,
 		                                                                                      common::eDscpMarkType::never,
 		                                                                                      0,
 		                                                                                      common::eDscpMarkType::never,

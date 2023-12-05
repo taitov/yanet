@@ -743,7 +743,7 @@ eResult generation::tun64mappings_update(const common::idp::updateGlobalBase::tu
 
 eResult generation::nat46stateless_update(const common::idp::updateGlobalBase::nat46stateless_update::request& request)
 {
-	const auto& [nat46stateless_id, lan_dscp_type, lan_dscp, wan_dscp_type, wan_dscp, counter_id, flow] = request;
+	const auto& [nat46stateless_id, ipv6_source, ipv6_destination, lan_dscp_type, lan_dscp, wan_dscp_type, wan_dscp, counter_id, flow] = request;
 
 	if (nat46stateless_id >= YANET_CONFIG_NAT46STATELESSES_SIZE)
 	{
@@ -767,6 +767,8 @@ eResult generation::nat46stateless_update(const common::idp::updateGlobalBase::n
 	}
 
 	auto& nat46stateless = nat46statelesses[nat46stateless_id];
+	nat46stateless.ipv6_source = ipv6_address_t::convert(ipv6_source);
+	nat46stateless.ipv6_destination = ipv6_address_t::convert(ipv6_destination);
 	nat46stateless.counter_id = counter_id;
 	nat46stateless.flow = flow;
 

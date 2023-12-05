@@ -350,6 +350,8 @@ struct tNat64stateless
 
 struct nat46stateless_t
 {
+	ipv6_address_t ipv6_source;
+	ipv6_address_t ipv6_destination;
 	tCounterId counter_id;
 	common::globalBase::tFlow flow;
 };

@@ -1012,6 +1012,9 @@ void config_parser_t::loadConfig_nat46stateless(controlplane::base_t& baseNext,
 	auto& nat46stateless = baseNext.nat46statelesses[moduleId];
 	nat46stateless_id_t nat46stateless_id = baseNext.nat46statelesses.size();
 
+	nat46stateless.ipv6_source = moduleJson["ipv6_source"].get<std::string>();
+	nat46stateless.ipv6_destination = moduleJson["ipv6_destination"].get<std::string>();
+
 	for (const auto& prefix_json : moduleJson["ipv6_prefixes"])
 	{
 		common::ipv6_prefix_t ipv6_prefix(prefix_json.get<std::string>());

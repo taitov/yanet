@@ -233,6 +233,8 @@ using request = std::vector<ipv4_prefix_t>;
 namespace nat46stateless_update
 {
 using request = std::tuple<nat46stateless_id_t,
+                           ipv6_address_t, ///< ipv6_source
+                           ipv6_address_t, ///< ipv6_destination
                            eDscpMarkType, ///< lan_dscp_type
                            uint8_t, ///< lan_dscp
                            eDscpMarkType, ///< wan_dscp_type

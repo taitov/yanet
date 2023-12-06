@@ -910,6 +910,7 @@ void route_t::reload(const controlplane::base_t& base_prev,
 			}
 		}
 
+		common::idp::updateGlobalBase::update_interface_names::request interface_names;
 		for (const auto& [config_module_name, config_module] : base_next.routes)
 		{
 			(void)config_module_name;
@@ -929,8 +930,11 @@ void route_t::reload(const controlplane::base_t& base_prev,
 						              directly_connected);
 					}
 				}
+
+				interface_names.emplace_back(interface.interfaceId, interface_name);
 			}
 		}
+		globalbase.emplace_back(common::idp::updateGlobalBase::requestType::update_interface_names, interface_names);
 	}
 
 #ifdef CONFIG_YADECAP_AUTOTEST

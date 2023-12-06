@@ -1,5 +1,5 @@
-#include <linux/if.h>
 #include <linux/rtnetlink.h>
+#include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -2107,58 +2107,127 @@ unsigned cControlPlane::ring_handle(rte_ring* ring_to_free_mbuf,
 	return rxSize;
 }
 
-/// XXX: move
-static void neighbor_monitor_parse(const char* buffer, const unsigned int buffer_length)
+int parse_rtattr_flags(struct rtattr* tb[],
+                       int max,
+                       struct rtattr* rta,
+                       int len,
+                       unsigned short flags)
 {
-	(void)buffer;
-	(void)buffer_length;
-	//	unsigned int offset = 0;
-	//	while (offset + sizeof(nlmsghdr) <= buffer_length)
-	//	{
-	//		nlmsghdr* nl_message_header = (nlmsghdr*)(buffer + offset);
-	//		uint32_t length = nl_message_header->nlmsg_len;
+	unsigned short type;
 
-	//		//		if ((length < 0) ||
-	//		//		    (len > raw_msg_len) ||
-	//		//		    (!NLMSG_OK(nlmp, raw_msg_len)))
-	//		//		{
-	//		//			YANET_LOG_ERROR("invalid length: %u\n", length);
-	//		//			printf("error\n");
-	//		//			// Should processing of the message continue if there are certain types of problems?
-	//		//		}
-
-	//		for (; RTA_OK(rtatp, rtattrlen); rtatp = RTA_NEXT(rtatp, rtattrlen))
-	//		{
-	//			printf("type: %u\n", rtatp->rta_type);
-	//			if (rtatp->rta_type == NDA_DST)
-	//			{
-	//				inp = (struct in_addr*)RTA_DATA(rtatp);
-	//				inet_ntop(AF_INET, inp, ipv4string, INET_ADDRSTRLEN);
-	//				printf("  addr: %s\n", ipv4string);
-	//			}
-	//			else if (rtatp->rta_type == NDA_LLADDR)
-	//			{
-	//				printf("  lladdr: %u - %d - %lu\n", rtatp->rta_len, rtattrlen, RTA_PAYLOAD(rtatp));
-	//			}
-	//		}
-	//	}
-
-	//	while (buffer_length > sizeof(nlmsghdr))
-	//	{
-	//		nlmsghdr* nl_message_header = (nlmsghdr*)(buffer + offset);
-
-	//		uint32_t length = nl_message_header->nlmsg_len;
-
-	//		buffer_length -= NLMSG_ALIGN(length);
-	//		nl_message_header = (nlmsghdr*)((char*)nl_message_header + NLMSG_ALIGN(length));
-	//	}
-	//	return;
+	memset(tb, 0, sizeof(struct rtattr*) * (max + 1));
+	while (RTA_OK(rta, len))
+	{
+		type = rta->rta_type & ~flags;
+		if ((type <= max) && (!tb[type]))
+			tb[type] = rta;
+		rta = RTA_NEXT(rta, len);
+	}
+	if (len)
+		fprintf(stderr, "!!!Deficit %d, rta_len=%d\n", len, rta->rta_len);
+	return 0;
 }
 
+int parse_rtattr(struct rtattr* tb[], int max, struct rtattr* rta, int len)
+{
+	return parse_rtattr_flags(tb, max, rta, len, 0);
+}
+
+#ifndef NDA_RTA
+#define NDA_RTA(r) ((struct rtattr*)(((char*)(r)) + NLMSG_ALIGN(sizeof(struct ndmsg))))
+#endif
+
+const char* ll_addr_n2a(const unsigned char* addr, int alen, int type, char* buf, int blen)
+{
+	(void)type;
+
+	int i;
+	int l;
+
+	if (alen == 4)
+		return inet_ntop(AF_INET, addr, buf, blen);
+
+	if (alen == 16)
+		return inet_ntop(AF_INET6, addr, buf, blen);
+
+	snprintf(buf, blen, "%02x", addr[0]);
+	for (i = 1, l = 2; i < alen && l < blen; i++, l += 3)
+		snprintf(buf + l, blen - l, ":%02x", addr[i]);
+	return buf;
+}
+
+const char* ll_index_to_name(unsigned int idx)
+{
+	static char buf[IFNAMSIZ];
+
+	if (idx == 0)
+		return "*";
+
+	if (if_indextoname(idx, buf) == NULL)
+		snprintf(buf, IFNAMSIZ, "if%u", idx);
+
+	return buf;
+}
+
+/// XXX: move
+static void neighbor_monitor_parse(const std::function<void(const std::string&, const common::ip_address_t&, const common::mac_address_t&)>& callback,
+                                   const char* buffer,
+                                   const unsigned int buffer_length)
+{
+	struct rtattr* tb[NDA_MAX + 1];
+
+	unsigned int offset = 0;
+	while (offset + sizeof(nlmsghdr) <= buffer_length)
+	{
+		nlmsghdr* nl_message_header = (nlmsghdr*)(buffer + offset);
+		uint32_t length = nl_message_header->nlmsg_len;
+
+		struct ndmsg* r = (struct ndmsg*)NLMSG_DATA(nl_message_header);
+		parse_rtattr(tb,
+		             NDA_MAX,
+		             NDA_RTA(r),
+		             nl_message_header->nlmsg_len - NLMSG_LENGTH(sizeof(*r)));
+
+		if (tb[NDA_DST] && tb[NDA_LLADDR] && r->ndm_ifindex)
+		{
+			std::string ifname = ll_index_to_name(r->ndm_ifindex);
+
+			int family = r->ndm_family;
+			if (family == AF_BRIDGE)
+			{
+				if (RTA_PAYLOAD(tb[NDA_DST]) == sizeof(struct in6_addr))
+					family = AF_INET6;
+				else
+					family = AF_INET;
+			}
+
+			common::ip_address_t ip_address;
+			if (family == AF_INET)
+			{
+				ip_address = common::ipv4_address_t(rte_be_to_cpu_32(*(const uint32_t*)RTA_DATA(tb[NDA_DST])));
+			}
+			else
+			{
+				ip_address = common::ipv6_address_t((const uint8_t*)RTA_DATA(tb[NDA_DST]));
+			}
+
+			common::mac_address_t mac_address((const uint8_t*)RTA_DATA(tb[NDA_LLADDR]));
+
+			callback(ifname, ip_address, mac_address);
+		}
+
+		offset += NLMSG_ALIGN(length);
+	}
+
+	if (buffer_length - offset)
+	{
+		YANET_LOG_WARNING("extra buffer_length: %u of %u\n", offset, buffer_length);
+	}
+}
+
+/// XXX: move
 static void neighbor_monitor(const std::function<void(const std::string&, const common::ip_address_t&, const common::mac_address_t&)>& callback)
 {
-	(void)callback; ///< callback
-
 	int nl_socket = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (nl_socket < 0)
 	{
@@ -2167,7 +2236,7 @@ static void neighbor_monitor(const std::function<void(const std::string&, const 
 	}
 
 	sockaddr_nl nl_sockaddr;
-	bzero(&nl_sockaddr, sizeof(nl_sockaddr));
+	memset(&nl_sockaddr, 0, sizeof(nl_sockaddr));
 	nl_sockaddr.nl_family = AF_NETLINK;
 	nl_sockaddr.nl_groups = 1u << (RTNLGRP_NEIGH - 1);
 
@@ -2183,7 +2252,7 @@ static void neighbor_monitor(const std::function<void(const std::string&, const 
 		int buffer_length = recv(nl_socket, buffer, sizeof(buffer), 0);
 		if (buffer_length > 0)
 		{
-			neighbor_monitor_parse(buffer, buffer_length);
+			neighbor_monitor_parse(callback, buffer, buffer_length);
 		}
 		else
 		{
@@ -2201,7 +2270,23 @@ void cControlPlane::neighbor_thread()
 		neighbor_monitor([&](const std::string& interface_name,
 		                     const common::ip_address_t& ip_address,
 		                     const common::mac_address_t& mac_address) {
-			(void)interface_name; ///< XXX
+			tInterfaceId interface_id = 0;
+			{
+				std::lock_guard mac_addresses_lock(XXX_NM);
+				auto it = XXX_N.find(interface_name);
+				if (it == XXX_N.end())
+				{
+					printf("XXX: unknown interface_name: %s\n", interface_name.data());
+					return;
+				}
+
+				interface_id = it->second;
+			}
+
+			printf("XXX: neighbor_monitor: %s %s %s\n",
+			       interface_name.data(),
+			       ip_address.toString().data(),
+			       mac_address.toString().data());
 
 			dataplane::neighbor::value value;
 			memcpy(value.ether_address.addr_bytes, mac_address.data(), 6);
@@ -2209,7 +2294,7 @@ void cControlPlane::neighbor_thread()
 			if (ip_address.is_ipv4())
 			{
 				dataplane::neighbor::key_v4 key;
-				//				key.interface_id = interface_id;
+				key.interface_id = interface_id;
 				key.address = ipv4_address_t::convert(ip_address.get_ipv4());
 
 				for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)
@@ -2225,7 +2310,7 @@ void cControlPlane::neighbor_thread()
 			else
 			{
 				dataplane::neighbor::key_v6 key;
-				//				key.interface_id = interface_id;
+				key.interface_id = interface_id;
 				key.address = ipv6_address_t::convert(ip_address.get_ipv6());
 
 				for (auto& [core_id, worker_gc] : dataPlane->worker_gcs)

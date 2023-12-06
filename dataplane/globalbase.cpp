@@ -233,6 +233,10 @@ eResult generation::update(const common::idp::updateGlobalBase::request& request
 		{
 			result = nat46stateless_update(std::get<common::idp::updateGlobalBase::nat46stateless_update::request>(data));
 		}
+		else if (type == common::idp::updateGlobalBase::requestType::update_interface_names)
+		{
+			result = update_interface_names(std::get<common::idp::updateGlobalBase::update_interface_names::request>(data));
+		}
 		else
 		{
 			YADECAP_LOG_ERROR("invalid request type\n");
@@ -780,6 +784,17 @@ eResult generation::nat46stateless_update(const common::idp::updateGlobalBase::n
 
 	nat46stateless_enabled = 1;
 
+	return eResult::success;
+}
+
+eResult generation::update_interface_names(const common::idp::updateGlobalBase::update_interface_names::request& request)
+{
+	std::lock_guard mac_addresses_lock(dataPlane->controlPlane->XXX_NM);
+	dataPlane->controlPlane->XXX_N.clear();
+	for (const auto& [interface_id, interface_name] : request)
+	{
+		dataPlane->controlPlane->XXX_N[interface_name] = interface_id;
+	}
 	return eResult::success;
 }
 

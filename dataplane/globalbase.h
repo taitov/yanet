@@ -183,6 +183,7 @@ protected:
 	eResult tun64_update(const common::idp::updateGlobalBase::tun64_update::request& request);
 	eResult tun64mappings_update(const common::idp::updateGlobalBase::tun64mappings_update::request& request);
 	eResult nat46stateless_update(const common::idp::updateGlobalBase::nat46stateless_update::request& request);
+	eResult update_interface_names(const common::idp::updateGlobalBase::update_interface_names::request& request);
 
 	void evaluate_service_ring(uint32_t next_balancer_reals_id);
 	inline uint64_t count_real_connections(uint32_t counter_id);

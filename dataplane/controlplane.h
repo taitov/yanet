@@ -198,4 +198,7 @@ protected:
 
 	uint32_t currentTime;
 	uint32_t gc_step;
+
+	std::mutex XXX_NM;
+	std::map<std::string, tInterfaceId> XXX_N;
 };

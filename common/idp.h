@@ -157,6 +157,7 @@ enum class requestType : uint32_t
 	serial_update,
 	dump_tags_ids,
 	nat46stateless_update,
+	update_interface_names,
 	enum_size ///< size should always be at the bottom of the list, this enum allows us to find out the size of the enum list
 };
 
@@ -485,6 +486,11 @@ namespace serial_update
 using request = uint32_t; ///< serial
 }
 
+namespace update_interface_names
+{
+using request = std::vector<std::tuple<tInterfaceId, std::string>>;
+}
+
 using requestVariant = std::variant<std::tuple<>,
                                     updateLogicalPort::request,
                                     updateDecap::request,
@@ -519,7 +525,8 @@ using requestVariant = std::variant<std::tuple<>,
                                     fwstate_synchronization_update::request,
                                     sampler_update::request, /// + update_early_decap_flags::request
                                     serial_update::request,
-                                    nat46stateless_update::request>;
+                                    nat46stateless_update::request,
+                                    update_interface_names::request>;
 
 using request = std::vector<std::tuple<requestType,
                                        requestVariant>>;

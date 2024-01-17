@@ -112,6 +112,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip
 
 RUN python3 -m pip install meson
+RUN python3 -m pip install pyinstaller
 
 COPY --from=base /target/ /usr/
 

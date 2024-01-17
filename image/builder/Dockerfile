@@ -93,7 +93,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     vim \
     devscripts \
     debhelper \
-    dupload
+    dupload \
+    python3-pip
+
+RUN python3 -m pip install pyinstaller
 
 COPY --from=base /target/ /usr/
 

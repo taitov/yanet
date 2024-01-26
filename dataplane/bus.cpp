@@ -194,9 +194,9 @@ void cBus::clientThread(int clientSocket)
 
 		const common::idp::requestType& type = std::get<0>(request);
 		YANET_LOG_DEBUG("request type %d\n", (int)type);
-		if (type == common::idp::requestType::updateGlobalBase)
+		if (type == common::idp::requestType::update)
 		{
-			response = callWithResponse(&cControlPlane::updateGlobalBase, request);
+			response = callWithResponse(&cControlPlane::update, request);
 		}
 		else if (type == common::idp::requestType::updateGlobalBaseBalancer)
 		{
@@ -377,6 +377,10 @@ void cBus::clientThread(int clientSocket)
 		else if (type == common::idp::requestType::neighbor_stats)
 		{
 			response = dataPlane->neighbor.neighbor_stats();
+		}
+		else if (type == common::idp::requestType::memory_manager_update)
+		{
+			response = dataPlane->memory_manager.memory_manager_update(std::get<common::idp::memory_manager_update::request>(std::get<1>(request)));
 		}
 		else
 		{

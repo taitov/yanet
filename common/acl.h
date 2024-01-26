@@ -1,5 +1,6 @@
 #pragma once
 
+#include "result.h"
 #include "stream.h"
 #include "type.h"
 
@@ -293,5 +294,26 @@ public:
 
 using ranges_uint8_t = ranges_t<uint8_t>;
 using ranges_uint16_t = ranges_t<uint16_t>;
+
+//
+
+namespace idp
+{
+
+using network_ipv4_source = std::vector<acl::tree_chunk_8bit_t>;
+using network_ipv4_destination = std::vector<acl::tree_chunk_8bit_t>;
+using network_ipv6_destination_ht = std::vector<std::tuple<ipv6_address_t, tAclGroupId>>;
+using transport_table = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
+using total_table = std::vector<std::tuple<acl::total_key_t, tAclGroupId>>;
+
+using request = std::tuple<network_ipv4_source,
+                           network_ipv4_destination,
+                           network_ipv6_destination_ht,
+                           transport_table,
+                           total_table>;
+
+using response = eResult;
+
+}
 
 }

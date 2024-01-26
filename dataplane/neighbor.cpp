@@ -114,6 +114,10 @@ static void netlink_parse(const std::function<void(const std::string&, const com
 
 static void netlink_neighbor_monitor(const std::function<void(const std::string&, const common::ip_address_t&, const common::mac_address_t&)>& callback)
 {
+#ifdef CONFIG_YADECAP_AUTOTEST
+	return;
+#endif // CONFIG_YADECAP_AUTOTEST
+
 	int nl_socket = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (nl_socket < 0)
 	{
@@ -151,6 +155,10 @@ static void netlink_neighbor_monitor(const std::function<void(const std::string&
 
 static void netlink_neighbor_dump(const std::function<void(const std::string&, const common::ip_address_t&, const common::mac_address_t&)>& callback)
 {
+#ifdef CONFIG_YADECAP_AUTOTEST
+	return;
+#endif // CONFIG_YADECAP_AUTOTEST
+
 	int nl_socket = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (nl_socket < 0)
 	{
@@ -233,9 +241,9 @@ void module::update_worker_base(const std::vector<std::tuple<tSocketId, dataplan
 	}
 }
 
-common::idp::neighbor_show::response module::neighbor_show() const
+common::neighbor::idp::show module::neighbor_show() const
 {
-	common::idp::neighbor_show::response response;
+	common::neighbor::idp::show response;
 
 	generation_interface.current_lock();
 	auto interface_id_to_name = generation_interface.current().interface_id_to_name;
@@ -279,7 +287,7 @@ common::idp::neighbor_show::response module::neighbor_show() const
 	return response;
 }
 
-eResult module::neighbor_insert(const common::idp::neighbor_insert::request& request)
+eResult module::neighbor_insert(const common::neighbor::idp::insert& request)
 {
 	const auto& [route_name, interface_name, ip_address, mac_address] = request;
 	(void)route_name; ///< @todo
@@ -340,7 +348,7 @@ eResult module::neighbor_insert(const common::idp::neighbor_insert::request& req
 	return response;
 }
 
-eResult module::neighbor_remove(const common::idp::neighbor_remove::request& request)
+eResult module::neighbor_remove(const common::neighbor::idp::remove& request)
 {
 	const auto& [route_name, interface_name, ip_address] = request;
 	(void)route_name; ///< @todo
@@ -409,18 +417,8 @@ eResult module::neighbor_clear()
 	return response;
 }
 
-eResult module::neighbor_flush()
+eResult module::neighbor_update_interfaces(const common::neighbor::idp::update_interfaces& request)
 {
-	generation_hashtable.switch_generation_with_update([this]() {
-		dataplane->switch_worker_base();
-	});
-	return eResult::success;
-}
-
-eResult module::neighbor_update_interfaces(const common::idp::neighbor_update_interfaces::request& request)
-{
-	generation_interface.next_lock();
-
 	auto& generation = generation_interface.next();
 	for (const auto& [interface_id,
 	                  route_name,
@@ -430,73 +428,10 @@ eResult module::neighbor_update_interfaces(const common::idp::neighbor_update_in
 		generation.interface_id_to_name[interface_id] = {route_name, interface_name};
 	}
 
-	generation_interface.switch_generation();
-	generation_interface.next_unlock();
-
-	netlink_neighbor_dump([this](const std::string& interface_name,
-	                             const common::ip_address_t& ip_address,
-	                             const common::mac_address_t& mac_address) {
-		tInterfaceId interface_id = 0;
-		{
-			auto lock = generation_interface.current_lock_guard();
-
-			const auto& interface_name_to_id = generation_interface.current().interface_name_to_id;
-			auto it = interface_name_to_id.find(interface_name);
-			if (it == interface_name_to_id.end())
-			{
-				return;
-			}
-			interface_id = it->second;
-		}
-
-		YANET_LOG_DEBUG("netlink: %s, %s -> %s\n",
-		                interface_name.data(),
-		                ip_address.toString().data(),
-		                mac_address.toString().data());
-
-		stats.netlink_neighbor_update++;
-
-		dataplane::neighbor::key key;
-		memset(&key, 0, sizeof(key));
-		key.interface_id = interface_id;
-		key.flags = 0;
-
-		if (ip_address.is_ipv4())
-		{
-			key.address.mapped_ipv4_address = ipv4_address_t::convert(ip_address.get_ipv4());
-		}
-		else
-		{
-			key.address = ipv6_address_t::convert(ip_address.get_ipv6());
-			key.flags |= flag_is_ipv6;
-		}
-
-		value value;
-		memcpy(value.ether_address.addr_bytes, mac_address.data(), RTE_ETHER_ADDR_LEN);
-		value.flags = 0;
-		value.last_update_timestamp = dataplane->get_current_time();
-
-		generation_hashtable.update([this, key, value](neighbor::generation_hashtable& hashtable) {
-			for (auto& [socket_id, hashtable_updater] : hashtable.hashtable_updater)
-			{
-				(void)socket_id;
-				if (!hashtable_updater.get_pointer()->insert_or_update(key, value))
-				{
-					stats.hashtable_insert_error++;
-				}
-				else
-				{
-					stats.hashtable_insert_success++;
-				}
-			}
-			return eResult::success;
-		});
-	});
-
 	return eResult::success;
 }
 
-common::idp::neighbor_stats::response module::neighbor_stats() const
+common::neighbor::idp::stats module::neighbor_stats() const
 {
 	return stats;
 }
@@ -509,6 +444,102 @@ void module::report(nlohmann::json& json)
 	json["neighbor"]["hashtable_remove_error"] = stats.hashtable_remove_error;
 	json["neighbor"]["netlink_neighbor_update"] = stats.netlink_neighbor_update;
 	json["neighbor"]["resolve"] = stats.resolve;
+}
+
+void module::limits(common::idp::limits::response& response)
+{
+	(void)response;
+}
+
+void module::update_before(const common::idp::update::request& request)
+{
+	if (!request.neighbor())
+	{
+		return;
+	}
+
+	/// @todo: lock generation_interface only on `update_interfaces`
+	generation_interface.next_lock();
+
+	/// @todo: lock generation_hashtable only on write to hashtable
+	generation_hashtable.next_lock();
+}
+
+void module::update(const common::idp::update::request& request,
+                    common::idp::update::response& response)
+{
+	if (!request.neighbor())
+	{
+		return;
+	}
+
+	const auto& [type, variant] = *request.neighbor();
+
+	auto& response_neighbor = response.neighbor();
+	if (type == common::neighbor::idp::type::show)
+	{
+		response_neighbor = neighbor_show();
+	}
+	else if (type == common::neighbor::idp::type::insert)
+	{
+		response_neighbor = neighbor_insert(std::get<common::neighbor::idp::insert>(variant));
+	}
+	else if (type == common::neighbor::idp::type::remove)
+	{
+		response_neighbor = neighbor_remove(std::get<common::neighbor::idp::remove>(variant));
+	}
+	else if (type == common::neighbor::idp::type::clear)
+	{
+		response_neighbor = neighbor_clear();
+	}
+	else if (type == common::neighbor::idp::type::update_interfaces)
+	{
+		response_neighbor = neighbor_update_interfaces(std::get<common::neighbor::idp::update_interfaces>(variant));
+
+		generation_interface.switch_generation_without_gc();
+
+		netlink_neighbor_dump([this](const std::string& interface_name,
+		                             const common::ip_address_t& ip_address,
+		                             const common::mac_address_t& mac_address) {
+			common::neighbor::idp::insert insert("", ///< @todo: route_name
+			                                     interface_name,
+			                                     ip_address,
+			                                     mac_address);
+			auto result = neighbor_insert(insert);
+			if (result != eResult::success)
+			{
+				YANET_LOG_WARNING("neighbor_insert(%s, %s): %s\n",
+				                  interface_name.data(),
+				                  ip_address.toString().data(),
+				                  common::result_to_c_str(result));
+			}
+		});
+	}
+	else if (type == common::neighbor::idp::type::stats)
+	{
+		response_neighbor = neighbor_stats();
+	}
+	else
+	{
+		response_neighbor = eResult::invalidType;
+	}
+
+	generation_hashtable.switch_generation_without_gc();
+}
+
+void module::update_after(const common::idp::update::request& request)
+{
+	if (!request.neighbor())
+	{
+		return;
+	}
+
+	generation_interface.next().interface_name_to_id.clear();
+	generation_interface.next().interface_id_to_name.clear();
+	generation_hashtable.next_apply();
+
+	generation_interface.next_unlock();
+	generation_hashtable.next_unlock();
 }
 
 void module::main_thread()
@@ -548,10 +579,6 @@ void module::main_thread()
 			resolve(key);
 		}
 
-		generation_hashtable.switch_generation_with_update([this]() {
-			dataplane->switch_worker_base();
-		});
-
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 }
@@ -567,61 +594,14 @@ void module::netlink_thread()
 		netlink_neighbor_monitor([&](const std::string& interface_name,
 		                             const common::ip_address_t& ip_address,
 		                             const common::mac_address_t& mac_address) {
-			tInterfaceId interface_id = 0;
-			{
-				auto lock = generation_interface.current_lock_guard();
+			common::neighbor::idp::insert insert("", ///< @todo: route_name
+			                                     interface_name,
+			                                     ip_address,
+			                                     mac_address);
+			common::idp::update::request update;
+			update.neighbor() = {common::neighbor::idp::type::insert, insert};
 
-				const auto& interface_name_to_id = generation_interface.current().interface_name_to_id;
-				auto it = interface_name_to_id.find(interface_name);
-				if (it == interface_name_to_id.end())
-				{
-					return;
-				}
-				interface_id = it->second;
-			}
-
-			YANET_LOG_DEBUG("netlink: %s, %s -> %s\n",
-			                interface_name.data(),
-			                ip_address.toString().data(),
-			                mac_address.toString().data());
-
-			stats.netlink_neighbor_update++;
-
-			dataplane::neighbor::key key;
-			memset(&key, 0, sizeof(key));
-			key.interface_id = interface_id;
-			key.flags = 0;
-
-			if (ip_address.is_ipv4())
-			{
-				key.address.mapped_ipv4_address = ipv4_address_t::convert(ip_address.get_ipv4());
-			}
-			else
-			{
-				key.address = ipv6_address_t::convert(ip_address.get_ipv6());
-				key.flags |= flag_is_ipv6;
-			}
-
-			value value;
-			memcpy(value.ether_address.addr_bytes, mac_address.data(), 6);
-			value.flags = 0;
-			value.last_update_timestamp = dataplane->get_current_time();
-
-			generation_hashtable.update([this, key, value](neighbor::generation_hashtable& hashtable) {
-				for (auto& [socket_id, hashtable_updater] : hashtable.hashtable_updater)
-				{
-					(void)socket_id;
-					if (!hashtable_updater.get_pointer()->insert_or_update(key, value))
-					{
-						stats.hashtable_insert_error++;
-					}
-					else
-					{
-						stats.hashtable_insert_success++;
-					}
-				}
-				return eResult::success;
-			});
+			dataplane->controlPlane->update(update);
 		});
 
 		YANET_LOG_WARNING("restart neighbor_monitor\n");
@@ -658,33 +638,24 @@ void module::resolve(const dataplane::neighbor::key& key)
 	                ip_address.toString().data());
 
 #ifdef CONFIG_YADECAP_AUTOTEST
-	value value;
-	value.ether_address.addr_bytes[0] = 44;
-	value.ether_address.addr_bytes[1] = 44;
+	common::mac_address_t mac_address;
+	mac_address.data()[0] = 44;
+	mac_address.data()[1] = 44;
 	if (key.flags & flag_is_ipv6)
 	{
-		value.ether_address.addr_bytes[0] = 66;
-		value.ether_address.addr_bytes[1] = 66;
+		mac_address.data()[0] = 66;
+		mac_address.data()[1] = 66;
 	}
-	*((uint32_t*)&value.ether_address.addr_bytes[2]) = rte_hash_crc(key.address.bytes, 16, 0);
-	value.flags = 0;
-	value.last_update_timestamp = dataplane->get_current_time();
+	*((uint32_t*)&mac_address.data()[2]) = rte_hash_crc(key.address.bytes, 16, 0);
 
-	generation_hashtable.update([this, key, value](neighbor::generation_hashtable& hashtable) {
-		for (auto& [socket_id, hashtable_updater] : hashtable.hashtable_updater)
-		{
-			(void)socket_id;
-			if (!hashtable_updater.get_pointer()->insert_or_update(key, value))
-			{
-				stats.hashtable_insert_error++;
-			}
-			else
-			{
-				stats.hashtable_insert_success++;
-			}
-		}
-		return eResult::success;
-	});
+	common::neighbor::idp::insert insert("", ///< @todo: route_name
+	                                     interface_name,
+	                                     ip_address,
+	                                     mac_address);
+	common::idp::update::request update;
+	update.neighbor() = {common::neighbor::idp::type::insert, insert};
+
+	dataplane->controlPlane->update(update);
 #else // CONFIG_YADECAP_AUTOTEST
 
 	/// @todo: in first, try resolve like 'ip neig show 10.0.0.1 dev eth0'

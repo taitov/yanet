@@ -1198,13 +1198,13 @@ void config_converter_t::acl_rules_nat64stateless_ingress(controlplane::base::ac
 
 			/* @todo
 			{
-				controlplane::base::acl_rule_transport_icmpv6_t rule_transport{range_t{0x00, 0xFF},
-				                                                               range_t{0x00, 0xFF},
-				                                                               ingressPortRange};
-				acl.nextModuleRules.emplace_back(rule_network,
-				                                 fragState::firstFragment,
-				                                 rule_transport,
-				                                 flow_fragmentation);
+			        controlplane::base::acl_rule_transport_icmpv6_t rule_transport{range_t{0x00, 0xFF},
+			                                                                       range_t{0x00, 0xFF},
+			                                                                       ingressPortRange};
+			        acl.nextModuleRules.emplace_back(rule_network,
+			                                         fragState::firstFragment,
+			                                         rule_transport,
+			                                         flow_fragmentation);
 			}
 			*/
 
@@ -1456,13 +1456,13 @@ void config_converter_t::acl_rules_nat64stateless_egress(controlplane::base::acl
 
 			/* @todo
 			{
-				controlplane::base::acl_rule_transport_icmpv4_t rule_transport{range_t{0x00, 0xFF},
-				                                                               range_t{0x00, 0xFF},
-				                                                               egressPortRange};
-				acl.nextModuleRules.emplace_back(rule_network,
-				                                 fragState::firstFragment,
-				                                 rule_transport,
-				                                 flow_fragmentation);
+			        controlplane::base::acl_rule_transport_icmpv4_t rule_transport{range_t{0x00, 0xFF},
+			                                                                       range_t{0x00, 0xFF},
+			                                                                       egressPortRange};
+			        acl.nextModuleRules.emplace_back(rule_network,
+			                                         fragState::firstFragment,
+			                                         rule_transport,
+			                                         flow_fragmentation);
 			}
 			*/
 
@@ -1880,24 +1880,23 @@ void config_converter_t::buildAcl()
 	serializeLogicalPorts();
 	serializeRoutes();
 
-	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_ipv4_source, std::move(result.acl_network_ipv4_source));
-	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_ipv4_destination, std::move(result.acl_network_ipv4_destination));
+	if (result.acl_transport_tables.size() != 1)
+	{
+		throw std::runtime_error("support multithread here");
+	}
+
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_ipv6_source, std::move(result.acl_network_ipv6_source));
-	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_ipv6_destination_ht, std::move(result.acl_network_ipv6_destination_ht));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_ipv6_destination, std::move(result.acl_network_ipv6_destination));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_table, std::move(result.acl_network_table));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_flags, std::move(result.acl_network_flags));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_transport_layers, std::move(result.acl_transport_layers));
 
-	{
-		if (result.acl_transport_tables.size() != 1)
-		{
-			throw std::runtime_error("support multithread here");
-		}
-		globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_transport_table, std::move(result.acl_transport_tables[0]));
-	}
+	acl_request = {std::move(result.acl_network_ipv4_source),
+	               std::move(result.acl_network_ipv4_destination),
+	               std::move(result.acl_network_ipv6_destination_ht),
+	               std::move(result.acl_transport_tables[0]),
+	               std::move(result.acl_total_table)};
 
-	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_total_table, std::move(result.acl_total_table));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_values, std::move(result.acl_values));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::dump_tags_ids, std::move(result.dump_id_to_tag));
 

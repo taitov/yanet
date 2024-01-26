@@ -3,7 +3,8 @@ dependencies += dependency('libdpdk', static: true)
 dependencies += dependency('libsystemd')
 dependencies += dependency('threads')
 
-sources = files('bus.cpp',
+sources = files('acl.cpp',
+                'bus.cpp',
                 'controlplane.cpp',
                 'dataplane.cpp',
                 'debug_latch.cpp',
@@ -11,6 +12,7 @@ sources = files('bus.cpp',
                 'fragmentation.cpp',
                 'globalbase.cpp',
                 'main.cpp',
+                'memory_manager.cpp',
                 'neighbor.cpp',
                 'report.cpp',
                 'sharedmemory.cpp',

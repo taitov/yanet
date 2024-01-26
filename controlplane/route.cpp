@@ -3,12 +3,8 @@
 
 eResult route_t::init()
 {
-	{
-		common::idp::updateGlobalBase::request globalbase;
-		globalbase.emplace_back(common::idp::updateGlobalBase::requestType::route_lpm_update,
-		                        common::idp::lpm::request({common::idp::lpm::clear()}));
-		dataplane.updateGlobalBase(std::move(globalbase));
-	}
+	dataplane.update_globalbase({{common::idp::updateGlobalBase::requestType::route_lpm_update,
+	                              common::idp::lpm::request({common::idp::lpm::clear()})}});
 
 	tunnel_counter.init(&controlPlane->counter_manager);
 	tunnel_counter.insert({true, 0, ip_address_t(), 0}); ///< fallback v4
@@ -389,7 +385,7 @@ void route_t::prefix_flush()
 	tunnel_counter.allocate();
 
 	compile(globalbase, generations.current());
-	dataplane.updateGlobalBase(globalbase); ///< может вызвать исключение, которое никто не поймает, и это приведёт к abort()
+	dataplane.update_globalbase(globalbase); ///< может вызвать исключение, которое никто не поймает, и это приведёт к abort()
 
 	tunnel_counter.release();
 
@@ -750,8 +746,9 @@ void route_t::compile_interface(common::idp::updateGlobalBase::request& globalba
                                 const route::generation_t& generation,
                                 route::generation_neighbors_t& generation_neighbors)
 {
+	/// @todo: use dataplane.update()
 	{
-		common::idp::neighbor_update_interfaces::request request;
+		common::neighbor::idp::update_interfaces request;
 		for (const auto& [route_name, route] : generation.routes)
 		{
 			for (auto& [interface_name, interface] : route.interfaces)

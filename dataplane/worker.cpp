@@ -1423,13 +1423,13 @@ inline void cWorker::acl_ingress_handle4()
 		key_acl.ipv4_destinations[mbuf_i].address = ipv4Header->dst_addr;
 	}
 
-	acl.network.ipv4.source->lookup(key_acl.ipv4_sources,
-	                                value_acl.ipv4_sources,
-	                                acl_ingress_stack4.mbufsCount);
-
-	acl.network.ipv4.destination->lookup(key_acl.ipv4_destinations,
-	                                     value_acl.ipv4_destinations,
+	base.acl_network_ipv4_source->lookup(key_acl.ipv4_sources,
+	                                     value_acl.ipv4_sources,
 	                                     acl_ingress_stack4.mbufsCount);
+
+	base.acl_network_ipv4_destination->lookup(key_acl.ipv4_destinations,
+	                                          value_acl.ipv4_destinations,
+	                                          acl_ingress_stack4.mbufsCount);
 
 	acl.network_table->lookup(value_acl.ipv4_sources,
 	                          value_acl.ipv4_destinations,
@@ -1494,10 +1494,10 @@ inline void cWorker::acl_ingress_handle4()
 		transport_key.network_flags = acl.network_flags.array[metadata->network_flags];
 	}
 
-	acl.transport_table->lookup(hashes,
-	                            key_acl.transports,
-	                            value_acl.transports,
-	                            acl_ingress_stack4.mbufsCount);
+	base.acl_transport_table->lookup(hashes,
+	                                 key_acl.transports,
+	                                 value_acl.transports,
+	                                 acl_ingress_stack4.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_ingress_stack4.mbufsCount;
@@ -1513,10 +1513,10 @@ inline void cWorker::acl_ingress_handle4()
 		total_key.transport_id = transport_value;
 	}
 
-	acl.total_table->lookup(hashes,
-	                        key_acl.totals,
-	                        value_acl.totals,
-	                        acl_ingress_stack4.mbufsCount);
+	base.acl_total_table->lookup(hashes,
+	                             key_acl.totals,
+	                             value_acl.totals,
+	                             acl_ingress_stack4.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_ingress_stack4.mbufsCount;
@@ -1612,10 +1612,10 @@ inline void cWorker::acl_ingress_handle6()
 	                                acl_ingress_stack6.mbufsCount);
 
 	{
-		uint32_t mask = acl.network.ipv6.destination_ht->lookup(hashes,
-		                                                        key_acl.ipv6_destinations,
-		                                                        value_acl.ipv6_destinations,
-		                                                        acl_ingress_stack6.mbufsCount);
+		uint32_t mask = base.acl_network_ipv6_destination_ht->lookup(hashes,
+		                                                             key_acl.ipv6_destinations,
+		                                                             value_acl.ipv6_destinations,
+		                                                             acl_ingress_stack6.mbufsCount);
 		acl.network.ipv6.destination->lookup(mask,
 		                                     key_acl.ipv6_destinations,
 		                                     value_acl.ipv6_destinations,
@@ -1685,10 +1685,10 @@ inline void cWorker::acl_ingress_handle6()
 		transport_key.network_flags = acl.network_flags.array[metadata->network_flags];
 	}
 
-	acl.transport_table->lookup(hashes,
-	                            key_acl.transports,
-	                            value_acl.transports,
-	                            acl_ingress_stack6.mbufsCount);
+	base.acl_transport_table->lookup(hashes,
+	                                 key_acl.transports,
+	                                 value_acl.transports,
+	                                 acl_ingress_stack6.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_ingress_stack6.mbufsCount;
@@ -1704,10 +1704,10 @@ inline void cWorker::acl_ingress_handle6()
 		total_key.transport_id = transport_value;
 	}
 
-	acl.total_table->lookup(hashes,
-	                        key_acl.totals,
-	                        value_acl.totals,
-	                        acl_ingress_stack6.mbufsCount);
+	base.acl_total_table->lookup(hashes,
+	                             key_acl.totals,
+	                             value_acl.totals,
+	                             acl_ingress_stack6.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_ingress_stack6.mbufsCount;
@@ -5134,13 +5134,13 @@ inline void cWorker::acl_egress_handle4()
 		key_acl.ipv4_destinations[mbuf_i].address = ipv4Header->dst_addr;
 	}
 
-	acl.network.ipv4.source->lookup(key_acl.ipv4_sources,
-	                                value_acl.ipv4_sources,
-	                                acl_egress_stack4.mbufsCount);
-
-	acl.network.ipv4.destination->lookup(key_acl.ipv4_destinations,
-	                                     value_acl.ipv4_destinations,
+	base.acl_network_ipv4_source->lookup(key_acl.ipv4_sources,
+	                                     value_acl.ipv4_sources,
 	                                     acl_egress_stack4.mbufsCount);
+
+	base.acl_network_ipv4_destination->lookup(key_acl.ipv4_destinations,
+	                                          value_acl.ipv4_destinations,
+	                                          acl_egress_stack4.mbufsCount);
 
 	acl.network_table->lookup(value_acl.ipv4_sources,
 	                          value_acl.ipv4_destinations,
@@ -5205,10 +5205,10 @@ inline void cWorker::acl_egress_handle4()
 		transport_key.network_flags = acl.network_flags.array[metadata->network_flags];
 	}
 
-	acl.transport_table->lookup(hashes,
-	                            key_acl.transports,
-	                            value_acl.transports,
-	                            acl_egress_stack4.mbufsCount);
+	base.acl_transport_table->lookup(hashes,
+	                                 key_acl.transports,
+	                                 value_acl.transports,
+	                                 acl_egress_stack4.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_egress_stack4.mbufsCount;
@@ -5224,10 +5224,10 @@ inline void cWorker::acl_egress_handle4()
 		total_key.transport_id = transport_value;
 	}
 
-	acl.total_table->lookup(hashes,
-	                        key_acl.totals,
-	                        value_acl.totals,
-	                        acl_egress_stack4.mbufsCount);
+	base.acl_total_table->lookup(hashes,
+	                             key_acl.totals,
+	                             value_acl.totals,
+	                             acl_egress_stack4.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_egress_stack4.mbufsCount;
@@ -5389,10 +5389,10 @@ inline void cWorker::acl_egress_handle6()
 		transport_key.network_flags = acl.network_flags.array[metadata->network_flags];
 	}
 
-	acl.transport_table->lookup(hashes,
-	                            key_acl.transports,
-	                            value_acl.transports,
-	                            acl_egress_stack6.mbufsCount);
+	base.acl_transport_table->lookup(hashes,
+	                                 key_acl.transports,
+	                                 value_acl.transports,
+	                                 acl_egress_stack6.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_egress_stack6.mbufsCount;
@@ -5408,10 +5408,10 @@ inline void cWorker::acl_egress_handle6()
 		total_key.transport_id = transport_value;
 	}
 
-	acl.total_table->lookup(hashes,
-	                        key_acl.totals,
-	                        value_acl.totals,
-	                        acl_egress_stack6.mbufsCount);
+	base.acl_total_table->lookup(hashes,
+	                             key_acl.totals,
+	                             value_acl.totals,
+	                             acl_egress_stack6.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_egress_stack6.mbufsCount;

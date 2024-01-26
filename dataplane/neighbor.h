@@ -1,7 +1,6 @@
 #pragma once
 
 #include <map>
-#include <mutex>
 #include <thread>
 #include <unordered_map>
 
@@ -67,24 +66,26 @@ public:
 
 public:
 	eResult init(cDataPlane* dataplane);
-
 	void update_worker_base(const std::vector<std::tuple<tSocketId, dataplane::base::generation*>>& base_nexts);
-
-	common::idp::neighbor_show::response neighbor_show() const;
-	eResult neighbor_insert(const common::idp::neighbor_insert::request& request);
-	eResult neighbor_remove(const common::idp::neighbor_remove::request& request);
-	eResult neighbor_clear();
-	eResult neighbor_flush();
-	eResult neighbor_update_interfaces(const common::idp::neighbor_update_interfaces::request& request);
-	common::idp::neighbor_stats::response neighbor_stats() const;
-
 	void report(nlohmann::json& json);
+	void limits(common::idp::limits::response& response);
+
+	void update_before(const common::idp::update::request& request);
+	void update(const common::idp::update::request& request, common::idp::update::response& response);
+	void update_after(const common::idp::update::request& request);
 
 protected:
 	void main_thread();
 	void netlink_thread();
 
 	void resolve(const dataplane::neighbor::key& key);
+
+	common::neighbor::idp::show neighbor_show() const;
+	eResult neighbor_insert(const common::neighbor::idp::insert& request);
+	eResult neighbor_remove(const common::neighbor::idp::remove& request);
+	eResult neighbor_clear();
+	eResult neighbor_update_interfaces(const common::neighbor::idp::update_interfaces& request);
+	common::neighbor::idp::stats neighbor_stats() const;
 
 protected:
 	cDataPlane* dataplane;

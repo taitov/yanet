@@ -28,9 +28,25 @@ public:
 	}
 
 public:
-	auto updateGlobalBase(const common::idp::updateGlobalBase::request& request) const
+	auto update(const common::idp::update::request& request) const
 	{
-		return get<common::idp::requestType::updateGlobalBase, common::idp::updateGlobalBase::response>(request);
+		return get<common::idp::requestType::update, common::idp::update::response>(request);
+	}
+
+	auto update_globalbase(const common::idp::updateGlobalBase::request& request) const
+	{
+		common::idp::update::request update_request;
+		update_request.globalbase() = std::move(request);
+		const auto update_response = update(update_request);
+		return std::move(*update_response.globalbase());
+	}
+
+	auto update_neighbor(const common::neighbor::idp::request& request) const
+	{
+		common::idp::update::request update_request;
+		update_request.neighbor() = std::move(request);
+		const auto update_response = update(update_request);
+		return std::move(*update_response.neighbor());
 	}
 
 	eResult updateGlobalBaseBalancer(const common::idp::updateGlobalBaseBalancer::request& request) const
@@ -225,37 +241,43 @@ public:
 
 	auto neighbor_show() const
 	{
-		return get<common::idp::requestType::neighbor_show, common::idp::neighbor_show::response>();
+		auto response = update_neighbor({common::neighbor::idp::type::show, std::tuple<>()});
+		return std::get<common::neighbor::idp::show>(response);
 	}
 
-	auto neighbor_insert(const common::idp::neighbor_insert::request& request) const
+	auto neighbor_insert(const common::neighbor::idp::insert& request) const
 	{
-		return get<common::idp::requestType::neighbor_insert, eResult>(request);
+		auto response = update_neighbor({common::neighbor::idp::type::insert, request});
+		return std::get<eResult>(response);
 	}
 
-	auto neighbor_remove(const common::idp::neighbor_remove::request& request) const
+	auto neighbor_remove(const common::neighbor::idp::remove& request) const
 	{
-		return get<common::idp::requestType::neighbor_remove, eResult>(request);
+		auto response = update_neighbor({common::neighbor::idp::type::remove, request});
+		return std::get<eResult>(response);
 	}
 
 	auto neighbor_clear() const
 	{
-		return get<common::idp::requestType::neighbor_clear, eResult>();
+		auto response = update_neighbor({common::neighbor::idp::type::clear, std::tuple<>()});
+		return std::get<eResult>(response);
 	}
 
-	auto neighbor_flush() const
+	auto neighbor_update_interfaces(const common::neighbor::idp::update_interfaces& request) const
 	{
-		return get<common::idp::requestType::neighbor_flush, eResult>();
-	}
-
-	auto neighbor_update_interfaces(const common::idp::neighbor_update_interfaces::request& request) const
-	{
-		return get<common::idp::requestType::neighbor_update_interfaces, eResult>(request);
+		auto response = update_neighbor({common::neighbor::idp::type::update_interfaces, request});
+		return std::get<eResult>(response);
 	}
 
 	auto neighbor_stats() const
 	{
-		return get<common::idp::requestType::neighbor_stats, common::idp::neighbor_stats::response>();
+		auto response = update_neighbor({common::neighbor::idp::type::stats, std::tuple<>()});
+		return std::get<common::neighbor::idp::stats>(response);
+	}
+
+	auto memory_manager_update(const common::idp::memory_manager_update::request& request) const
+	{
+		return get<common::idp::requestType::memory_manager_update, eResult>(request);
 	}
 
 protected:

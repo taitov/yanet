@@ -150,70 +150,29 @@ void cControlPlane::start()
 	mainThread();
 }
 
-common::idp::updateGlobalBase::response cControlPlane::updateGlobalBase(const common::idp::updateGlobalBase::request& request)
+common::idp::update::response cControlPlane::update(const common::idp::update::request& request)
 {
-	std::lock_guard<std::mutex> guard(mutex);
-	if (!errors.empty())
-	{
-		return eResult::dataplaneIsBroken;
-	}
+	common::idp::update::response response;
 
-	YADECAP_MEMORY_BARRIER_COMPILE;
+	/// lock
+	dataPlane->globalbase_update_before(request);
+	dataPlane->neighbor.update_before(request);
+	dataPlane->acl_module.update_before(request);
 
-	auto result = eResult::success;
-	for (auto& iter : dataPlane->globalBases)
-	{
-		auto* globalBaseNext = iter.second[dataPlane->currentGlobalBaseId ^ 1];
-		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_pre_update);
-		result = globalBaseNext->update(request);
-		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_post_update);
-		if (result != eResult::success)
-		{
-			++errors["updateGlobalBase"];
-			break;
-		}
-	}
+	/// update
+	dataPlane->globalbase_update(request, response);
+	dataPlane->neighbor.update(request, response);
+	dataPlane->acl_module.update(request, response);
 
-	if (result != eResult::success)
-	{
-		return result;
-	}
+	/// switch
+	dataPlane->switch_worker_base();
 
-	DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_switch);
+	/// unlock
+	dataPlane->globalbase_update_after(request);
+	dataPlane->neighbor.update_after(request);
+	dataPlane->acl_module.update_after(request);
 
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	switchGlobalBase();
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	result = eResult::success;
-	for (auto& iter : dataPlane->globalBases)
-	{
-		auto* globalBaseNext = iter.second[dataPlane->currentGlobalBaseId ^ 1];
-		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_pre_update);
-		result = globalBaseNext->update(request);
-		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_post_update);
-		if (result != eResult::success)
-		{
-			// Practically unreachable.
-			++errors["updateGlobalBase"];
-			break;
-		}
-	}
-
-	if (result != eResult::success)
-	{
-		return result;
-	}
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	waitAllWorkers();
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	return eResult::success;
+	return response;
 }
 
 eResult cControlPlane::updateGlobalBaseBalancer(const common::idp::updateGlobalBaseBalancer::request& request)
@@ -253,7 +212,7 @@ eResult cControlPlane::updateGlobalBaseBalancer(const common::idp::updateGlobalB
 
 	YADECAP_MEMORY_BARRIER_COMPILE;
 
-	waitAllWorkers();
+	dataPlane->wait_all_workers();
 
 	YADECAP_MEMORY_BARRIER_COMPILE;
 
@@ -973,10 +932,6 @@ common::idp::limits::response cControlPlane::limits()
 			             YANET_CONFIG_ROUTE_TUNNEL_LPM6_EXTENDED_SIZE);
 
 			globalBase->updater.acl.network_table.limits(response, "acl.network.ht");
-			globalBase->updater.acl.transport_table.limits(response, "acl.transport.ht");
-			globalBase->updater.acl.total_table.limits(response, "acl.total.ht");
-			globalBase->updater.acl.network_ipv4_source.limits(response, "acl.network.v4.source.lpm");
-			globalBase->updater.acl.network_ipv4_destination.limits(response, "acl.network.v4.destination.lpm");
 			globalBase->updater.acl.network_ipv6_source.limits(response, "acl.network.v6.source.lpm");
 
 			/// globalBase->acl.network_ipv6_destination_ht is not critical
@@ -1003,6 +958,9 @@ common::idp::limits::response cControlPlane::limits()
 	}
 
 	dregress.limits(response);
+	dataPlane->memory_manager.limits(response);
+	dataPlane->neighbor.limits(response);
+	dataPlane->acl_module.limits(response);
 
 	return response;
 }
@@ -1317,100 +1275,6 @@ common::idp::nat64stateful_state::response cControlPlane::nat64stateful_state(co
 	}
 
 	return response;
-}
-
-void cControlPlane::switchBase()
-{
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	for (auto& iter : dataPlane->workers)
-	{
-		auto* worker = iter.second;
-
-		worker->currentBaseId ^= 1;
-	}
-
-	for (auto& iter : dataPlane->worker_gcs)
-	{
-		auto* worker = iter.second;
-
-		worker->current_base_id ^= 1;
-	}
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	waitAllWorkers();
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	for (auto& iter : dataPlane->workers)
-	{
-		auto* worker = iter.second;
-		auto& base = worker->bases[worker->currentBaseId];
-		auto& baseNext = worker->bases[worker->currentBaseId ^ 1];
-
-		baseNext = base;
-	}
-
-	for (auto& iter : dataPlane->worker_gcs)
-	{
-		auto* worker = iter.second;
-		auto& base = worker->bases[worker->current_base_id];
-		auto& baseNext = worker->bases[worker->current_base_id ^ 1];
-
-		baseNext = base;
-	}
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-}
-
-void cControlPlane::switchGlobalBase()
-{
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	{
-		std::lock_guard<std::mutex> guard(dataPlane->currentGlobalBaseId_mutex);
-		dataPlane->currentGlobalBaseId ^= 1;
-	}
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	dataPlane->switch_worker_base();
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-}
-
-void cControlPlane::waitAllWorkers()
-{
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	for (const auto& [core_id, worker] : dataPlane->workers)
-	{
-		(void)core_id;
-
-		uint64_t startIteration = worker->iteration;
-		uint64_t nextIteration = startIteration;
-		while (nextIteration - startIteration <= (uint64_t)16)
-		{
-			YADECAP_MEMORY_BARRIER_COMPILE;
-			nextIteration = worker->iteration;
-		}
-	}
-
-	for (const auto& [core_id, worker] : dataPlane->worker_gcs)
-	{
-		(void)core_id;
-
-		uint64_t startIteration = worker->iteration;
-		uint64_t nextIteration = startIteration;
-		while (nextIteration - startIteration <= (uint64_t)16)
-		{
-			YADECAP_MEMORY_BARRIER_COMPILE;
-			nextIteration = worker->iteration;
-		}
-	}
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
 }
 
 eResult cControlPlane::initMempool()

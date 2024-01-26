@@ -8,6 +8,7 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 
+#include "acl.h"
 #include "neighbor.h"
 #include "type.h"
 
@@ -81,12 +82,22 @@ class generation
 public:
 	generation() :
 	        globalBase(nullptr),
-	        neighbor_hashtable(nullptr)
+	        neighbor_hashtable(nullptr),
+	        acl_network_ipv4_source(nullptr),
+	        acl_network_ipv4_destination(nullptr),
+	        acl_network_ipv6_destination_ht(nullptr),
+	        acl_transport_table(nullptr),
+	        acl_total_table(nullptr)
 	{
 	}
 
 	dataplane::globalBase::generation* globalBase;
-	dataplane::neighbor::hashtable const* neighbor_hashtable;
+	const dataplane::neighbor::hashtable* neighbor_hashtable;
+	const dataplane::acl::network_ipv4_source::object_type* acl_network_ipv4_source;
+	const dataplane::acl::network_ipv4_destination::object_type* acl_network_ipv4_destination;
+	const dataplane::acl::network_ipv6_destination_ht::object_type* acl_network_ipv6_destination_ht;
+	const dataplane::acl::transport_table::object_type* acl_transport_table;
+	const dataplane::acl::total_table::object_type* acl_total_table;
 } __rte_aligned(2 * RTE_CACHE_LINE_SIZE);
 
 }

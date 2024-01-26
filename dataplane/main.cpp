@@ -1,5 +1,9 @@
+#include <execinfo.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <systemd/sd-daemon.h>
+#include <unistd.h>
 
 #include <iostream>
 
@@ -20,6 +24,21 @@ void handleSignal(int signalType)
 	else if (signalType == SIGPIPE)
 	{
 		YADECAP_LOG_INFO("signal: SIGPIPE\n");
+	}
+	else if (signalType == SIGABRT)
+	{
+		YADECAP_LOG_INFO("signal: SIGABRT\n");
+
+		void* array[10];
+		size_t size;
+
+		// get void*'s for all entries on the stack
+		size = backtrace(array, 10);
+
+		// print out all the frames to stderr
+		fprintf(stderr, "Error: signal %d:\n", signalType);
+		backtrace_symbols_fd(array, size, STDERR_FILENO);
+		exit(1);
 	}
 }
 
@@ -63,6 +82,11 @@ int main(int argc,
 	*/
 
 	if (signal(SIGPIPE, handleSignal) == SIG_ERR)
+	{
+		return 3;
+	}
+
+	if (signal(SIGABRT, handleSignal) == SIG_ERR)
 	{
 		return 3;
 	}

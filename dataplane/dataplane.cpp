@@ -226,6 +226,12 @@ eResult cDataPlane::init(const std::string& binaryPath,
 		return result;
 	}
 
+	result = memory_manager.init(this);
+	if (result != eResult::success)
+	{
+		return result;
+	}
+
 	result = controlPlane->init(config.use_kernel_interface);
 	if (result != eResult::success)
 	{
@@ -239,6 +245,12 @@ eResult cDataPlane::init(const std::string& binaryPath,
 	}
 
 	result = neighbor.init(this);
+	if (result != eResult::success)
+	{
+		return result;
+	}
+
+	result = acl_module.init(this);
 	if (result != eResult::success)
 	{
 		return result;
@@ -711,12 +723,6 @@ eResult cDataPlane::initGlobalBases()
 				return nullptr;
 			}
 
-			auto* acl_transport_table = hugepage_create_dynamic<dataplane::globalBase::acl::transport_table>(socket_id, getConfigValue(eConfigType::acl_transport_ht_size), globalbase->updater.acl.transport_table);
-			if (!acl_transport_table)
-			{
-				return nullptr;
-			}
-
 			auto* acl_total_table = hugepage_create_dynamic<dataplane::globalBase::acl::total_table>(socket_id, getConfigValue(eConfigType::acl_total_ht_size), globalbase->updater.acl.total_table);
 			if (!acl_total_table)
 			{
@@ -744,7 +750,6 @@ eResult cDataPlane::initGlobalBases()
 			globalbase->acl.network_table = acl_network_table;
 			globalbase->acl.transport_layers_mask = acl_transport_layers_size - 1;
 			globalbase->acl.transport_layers = acl_transport_layers;
-			globalbase->acl.transport_table = acl_transport_table;
 			globalbase->acl.total_table = acl_total_table;
 			globalbase->acl.values = acl_values;
 		}
@@ -1166,6 +1171,7 @@ void cDataPlane::init_worker_base()
 	}
 
 	neighbor.update_worker_base(base_nexts);
+	acl_module.update_worker_base(base_nexts);
 }
 
 void cDataPlane::hugepage_destroy(void* pointer)
@@ -1638,6 +1644,7 @@ void cDataPlane::switch_worker_base()
 		}
 	}
 	neighbor.update_worker_base(base_nexts);
+	acl_module.update_worker_base(base_nexts);
 
 	/// switch
 	controlPlane->switchBase();

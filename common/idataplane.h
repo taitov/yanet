@@ -28,9 +28,9 @@ public:
 	}
 
 public:
-	auto updateGlobalBase(const common::idp::updateGlobalBase::request& request) const
+	auto update(const common::idp::update::request& request) const
 	{
-		return get<common::idp::requestType::updateGlobalBase, common::idp::updateGlobalBase::response>(request);
+		return get<common::idp::requestType::update, eResult>(request);
 	}
 
 	eResult updateGlobalBaseBalancer(const common::idp::updateGlobalBaseBalancer::request& request) const
@@ -256,6 +256,11 @@ public:
 	auto neighbor_stats() const
 	{
 		return get<common::idp::requestType::neighbor_stats, common::idp::neighbor_stats::response>();
+	}
+
+	auto memory_manager_update(const common::idp::memory_manager_update::request& request) const
+	{
+		return get<common::idp::requestType::memory_manager_update, eResult>(request);
 	}
 
 protected:

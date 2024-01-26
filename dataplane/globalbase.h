@@ -67,7 +67,6 @@ using network_ipv6_source = YANET_CONFIG_ACL_NETWORK_LPM6_TYPE;
 using network_ipv6_destination_ht = hashtable_mod_id32_dynamic<ipv6_address_t, 1>;
 using network_ipv6_destination = YANET_CONFIG_ACL_NETWORK_LPM6_TYPE;
 using network_table = dynamic_table<uint32_t>;
-using transport_table = hashtable_mod_id32_dynamic<common::acl::transport_key_t, 16>;
 using total_table = hashtable_mod_id32_dynamic<common::acl::total_key_t, 16>;
 }
 
@@ -167,7 +166,6 @@ protected:
 	eResult acl_network_table(const common::idp::updateGlobalBase::acl_network_table::request& request);
 	eResult acl_network_flags(const common::idp::updateGlobalBase::acl_network_flags::request& request);
 	eResult acl_transport_layers(const common::idp::updateGlobalBase::acl_transport_layers::request& request);
-	eResult acl_transport_table(const common::idp::updateGlobalBase::acl_transport_table::request& request);
 	eResult acl_total_table(const common::idp::updateGlobalBase::acl_total_table::request& request);
 	eResult acl_values(const common::idp::updateGlobalBase::acl_values::request& request);
 	eResult dump_tags_ids(const common::idp::updateGlobalBase::dump_tags_ids::request& request);
@@ -199,7 +197,6 @@ public: ///< @todo
 			acl::network_ipv6_destination_ht::updater network_ipv6_destination_ht;
 			acl::network_ipv6_destination::updater network_ipv6_destination;
 			acl::network_table::updater network_table;
-			acl::transport_table::updater transport_table;
 			acl::total_table::updater total_table;
 		} acl;
 	} updater;
@@ -275,7 +272,6 @@ public: ///< @todo
 		uint32_t transport_layers_mask;
 		acl::transport_layer_t* transport_layers;
 
-		acl::transport_table* transport_table;
 		acl::total_table* total_table;
 		common::acl::value_t* values;
 	} acl;

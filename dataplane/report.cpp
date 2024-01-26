@@ -106,6 +106,8 @@ nlohmann::json cReport::getReport()
 	jsonReport["memory_total"] = memory_total;
 
 	dataPlane->neighbor.report(jsonReport);
+	dataPlane->memory_manager.report(jsonReport);
+	dataPlane->acl_module.report(jsonReport);
 
 	return jsonReport;
 }
@@ -686,7 +688,6 @@ nlohmann::json cReport::convertGlobalBase(const dataplane::globalBase::generatio
 	}
 
 	globalBase->updater.acl.network_table.report(json["acl"]["network_table"]);
-	globalBase->updater.acl.transport_table.report(json["acl"]["transport_table"]);
 	globalBase->updater.acl.total_table.report(json["acl"]["total_table"]);
 	globalBase->updater.acl.network_ipv4_source.report(json["acl"]["network"]["ipv4"]["source"]);
 	globalBase->updater.acl.network_ipv4_destination.report(json["acl"]["network"]["ipv4"]["destination"]);

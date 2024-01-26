@@ -1779,6 +1779,11 @@ public:
 	class updater
 	{
 	public:
+		updater() :
+		        hashtable(nullptr)
+		{
+		}
+
 		void update_pointer(hashtable_t* hashtable,
 		                    const tSocketId socket_id,
 		                    const uint32_t total_size)
@@ -1788,6 +1793,16 @@ public:
 			this->total_size = total_size;
 
 			hashtable->total_mask = total_size - 1;
+		}
+
+		hashtable_t* get_pointer()
+		{
+			return hashtable;
+		}
+
+		const hashtable_t* get_pointer() const
+		{
+			return hashtable;
 		}
 
 		template<typename update_key_t>
@@ -1851,10 +1866,23 @@ public:
 			}
 		}
 
-	public:
+		/// @todo: remove
 		template<typename list_T> ///< @todo: common::idp::limits::response
 		void limits(list_T& list,
 		            const std::string& name) const
+		{
+			list.emplace_back(name + ".keys",
+			                  socket_id,
+			                  keys_count,
+			                  total_size);
+			list.emplace_back(name + ".longest_collision",
+			                  socket_id,
+			                  longest_chain,
+			                  chunk_size);
+		}
+
+		template<typename list_T> ///< @todo: common::idp::limits::response
+		void limits(list_T& list) const
 		{
 			list.emplace_back(name + ".keys",
 			                  socket_id,
@@ -1927,6 +1955,7 @@ public:
 		}
 
 	public:
+		std::string name;
 		hashtable_t* hashtable;
 		tSocketId socket_id;
 		uint32_t total_size;
@@ -1938,21 +1967,26 @@ public:
 	};
 
 public:
-	static size_t calculate_sizeof(const uint32_t total_size)
+	static size_t calculate_sizeof(const uint64_t keys_count)
 	{
-		if (!total_size)
+		if (!keys_count)
 		{
-			YANET_LOG_ERROR("wrong total_size: %u\n", total_size);
+			YANET_LOG_ERROR("wrong keys_count: %lu\n", keys_count);
+			return 0;
+		}
+		else if (keys_count > 0xFFFFFFFFull)
+		{
+			YANET_LOG_ERROR("wrong keys_count: %lu\n", keys_count);
 			return 0;
 		}
 
-		if (__builtin_popcount(total_size) != 1)
+		if (__builtin_popcount(keys_count) != 1)
 		{
-			YANET_LOG_ERROR("wrong total_size: %u is non power of 2\n", total_size);
+			YANET_LOG_ERROR("wrong keys_count: %lu is non power of 2\n", keys_count);
 			return 0;
 		}
 
-		return sizeof(hashtable_t) + (size_t)total_size * sizeof(pair);
+		return sizeof(hashtable_t) + (size_t)keys_count * sizeof(pair);
 	}
 
 public:
@@ -2036,6 +2070,9 @@ public:
 	}
 
 protected:
+	template<typename, uint32_t, unsigned int>
+	friend class updater_hashtable_mod_id32;
+
 	uint32_t total_mask;
 
 	struct pair
@@ -2184,7 +2221,7 @@ public:
 		}
 		/* else if (is_equal(chunk, pair_index, key))
 		{
-			/// hashtable is broken
+		        /// hashtable is broken
 		} */
 
 		if (chunk_size == 1)
@@ -2214,7 +2251,7 @@ public:
 			}
 			/* else if (is_equal(chunk, pair_index, key))
 			{
-				/// hashtable is broken
+			        /// hashtable is broken
 			} */
 		}
 
@@ -2661,7 +2698,7 @@ public:
 		}
 		/* else if (is_equal(chunk, pair_index, key))
 		{
-			/// hashtable is broken
+		        /// hashtable is broken
 		} */
 
 		if (chunk_size == 1)
@@ -2691,7 +2728,7 @@ public:
 			}
 			/* else if (is_equal(chunk, pair_index, key))
 			{
-				/// hashtable is broken
+			        /// hashtable is broken
 			} */
 		}
 
@@ -2989,6 +3026,11 @@ public:
 	class updater
 	{
 	public:
+		updater() :
+		        hashtable(nullptr)
+		{
+		}
+
 		void update_pointer(hashtable_t* hashtable,
 		                    const tSocketId socket_id,
 		                    const uint32_t total_size)
@@ -3011,7 +3053,6 @@ public:
 			return hashtable;
 		}
 
-	public:
 		range_t range(uint32_t& offset,
 		              const uint32_t step)
 		{
@@ -3242,7 +3283,7 @@ public:
 		}
 		/* else if (is_equal(chunk, pair_index, key))
 		{
-			/// hashtable is broken
+		        /// hashtable is broken
 		} */
 
 		if (chunk_size == 1)
@@ -3272,7 +3313,7 @@ public:
 			}
 			/* else if (is_equal(chunk, pair_index, key))
 			{
-				/// hashtable is broken
+			        /// hashtable is broken
 			} */
 		}
 

@@ -137,6 +137,11 @@ public:
 		next_mutex.unlock();
 	}
 
+	[[nodiscard]] std::unique_lock<std::shared_mutex> next_lock_guard() const
+	{
+		return std::move(std::unique_lock(next_mutex));
+	}
+
 	Type& next()
 	{
 		return generations[id ^ 1];

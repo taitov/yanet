@@ -1494,10 +1494,10 @@ inline void cWorker::acl_ingress_handle4()
 		transport_key.network_flags = acl.network_flags.array[metadata->network_flags];
 	}
 
-	acl.transport_table->lookup(hashes,
-	                            key_acl.transports,
-	                            value_acl.transports,
-	                            acl_ingress_stack4.mbufsCount);
+	base.acl_transport_table->lookup(hashes,
+	                                 key_acl.transports,
+	                                 value_acl.transports,
+	                                 acl_ingress_stack4.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_ingress_stack4.mbufsCount;
@@ -1685,10 +1685,10 @@ inline void cWorker::acl_ingress_handle6()
 		transport_key.network_flags = acl.network_flags.array[metadata->network_flags];
 	}
 
-	acl.transport_table->lookup(hashes,
-	                            key_acl.transports,
-	                            value_acl.transports,
-	                            acl_ingress_stack6.mbufsCount);
+	base.acl_transport_table->lookup(hashes,
+	                                 key_acl.transports,
+	                                 value_acl.transports,
+	                                 acl_ingress_stack6.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_ingress_stack6.mbufsCount;
@@ -5205,10 +5205,10 @@ inline void cWorker::acl_egress_handle4()
 		transport_key.network_flags = acl.network_flags.array[metadata->network_flags];
 	}
 
-	acl.transport_table->lookup(hashes,
-	                            key_acl.transports,
-	                            value_acl.transports,
-	                            acl_egress_stack4.mbufsCount);
+	base.acl_transport_table->lookup(hashes,
+	                                 key_acl.transports,
+	                                 value_acl.transports,
+	                                 acl_egress_stack4.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_egress_stack4.mbufsCount;
@@ -5389,10 +5389,10 @@ inline void cWorker::acl_egress_handle6()
 		transport_key.network_flags = acl.network_flags.array[metadata->network_flags];
 	}
 
-	acl.transport_table->lookup(hashes,
-	                            key_acl.transports,
-	                            value_acl.transports,
-	                            acl_egress_stack6.mbufsCount);
+	base.acl_transport_table->lookup(hashes,
+	                                 key_acl.transports,
+	                                 value_acl.transports,
+	                                 acl_egress_stack6.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_egress_stack6.mbufsCount;

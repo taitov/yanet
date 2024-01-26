@@ -15,6 +15,7 @@
 #include "acl.h"
 #include "balancer.h"
 #include "config.h"
+#include "memory_manager.h"
 #include "neighbor.h"
 #include "result.h"
 #include "scheduler.h"
@@ -35,7 +36,7 @@ enum class errorType : uint32_t
 
 enum class requestType : uint32_t
 {
-	updateGlobalBase,
+	update, ///< update dataplane bases
 	updateGlobalBaseBalancer,
 	getGlobalBase,
 	getWorkerStats,
@@ -82,6 +83,9 @@ enum class requestType : uint32_t
 	neighbor_flush,
 	neighbor_update_interfaces,
 	neighbor_stats,
+	memory_manager_update,
+	memory_manager_stats,
+	acl_transport_table,
 	size, // size should always be at the bottom of the list, this enum allows us to find out the size of the enum list
 };
 
@@ -149,7 +153,6 @@ enum class requestType : uint32_t
 	acl_network_table,
 	acl_network_flags,
 	acl_transport_layers,
-	acl_transport_table,
 	acl_total_table,
 	acl_values,
 	dregress_prefix_update,
@@ -354,11 +357,6 @@ using layer = std::tuple<std::vector<acl::ranges_uint8_t>, ///< protocol
 using request = std::vector<layer>;
 }
 
-namespace acl_transport_table
-{
-using request = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
-}
-
 namespace acl_total_table
 {
 using request = std::vector<std::tuple<acl::total_key_t, tAclGroupId>>;
@@ -522,7 +520,6 @@ using requestVariant = std::variant<std::tuple<>,
                                     acl_network_table::request, /// + aclTransportDestination
                                     acl_network_flags::request,
                                     acl_transport_layers::request,
-                                    acl_transport_table::request,
                                     acl_total_table::request,
                                     acl_values::request,
                                     dump_tags_ids::request,
@@ -984,11 +981,27 @@ namespace neighbor_stats
 using response = common::neighbor::stats;
 }
 
+namespace memory_manager_update
+{
+using request = memory_manager::memory_group;
+}
+
+namespace acl_transport_table
+{
+using request = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
+}
+
+namespace update
+{
+using request = std::tuple<std::optional<updateGlobalBase::request>,
+                           std::optional<acl::idp::request>>;
+}
+
 //
 
 using request = std::tuple<requestType,
                            std::variant<std::tuple<>,
-                                        updateGlobalBase::request,
+                                        update::request,
                                         updateGlobalBaseBalancer::request,
                                         getGlobalBase::request,
                                         getControlPlanePortStats::request,
@@ -1005,10 +1018,12 @@ using request = std::tuple<requestType,
                                         dump_physical_port::request,
                                         neighbor_insert::request,
                                         neighbor_remove::request,
-                                        neighbor_update_interfaces::request>>;
+                                        neighbor_update_interfaces::request,
+                                        memory_manager_update::request,
+                                        acl_transport_table::request>>;
 
 using response = std::variant<std::tuple<>,
-                              updateGlobalBase::response, ///< + others which have eResult as response
+                              eResult,
                               getGlobalBase::response,
                               getWorkerStats::response,
                               getSlowWorkerStats::response,

@@ -150,14 +150,55 @@ void cControlPlane::start()
 	mainThread();
 }
 
-common::idp::updateGlobalBase::response cControlPlane::updateGlobalBase(const common::idp::updateGlobalBase::request& request)
+eResult cControlPlane::update(const common::idp::update::request& request)
 {
+	const auto& [request_globalbase, request_acl] = request;
+
 	std::lock_guard<std::mutex> guard(mutex);
 	if (!errors.empty())
 	{
 		return eResult::dataplaneIsBroken;
 	}
 
+	/// update
+	eResult result = eResult::success;
+	if (request_globalbase)
+	{
+		result = updateGlobalBase(*request_globalbase);
+		if (result != eResult::success)
+		{
+			return result;
+		}
+	}
+
+	if (request_acl)
+	{
+		result = dataPlane->acl_module.acl_update(*request_acl);
+		if (result != eResult::success)
+		{
+			++errors["update_acl"];
+			return result;
+		}
+	}
+
+	/// apply
+	if (request_globalbase)
+	{
+		globalbase_flush(*request_globalbase);
+	}
+
+	if (request_acl)
+	{
+		dataPlane->acl_module.acl_flush();
+	}
+
+	dataPlane->switch_worker_base();
+
+	return result;
+}
+
+common::idp::updateGlobalBase::response cControlPlane::updateGlobalBase(const common::idp::updateGlobalBase::request& request)
+{
 	YADECAP_MEMORY_BARRIER_COMPILE;
 
 	auto result = eResult::success;
@@ -179,15 +220,17 @@ common::idp::updateGlobalBase::response cControlPlane::updateGlobalBase(const co
 		return result;
 	}
 
-	DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_switch);
+	return eResult::success;
+}
 
-	YADECAP_MEMORY_BARRIER_COMPILE;
+void cControlPlane::globalbase_flush(const common::idp::updateGlobalBase::request& request)
+{
+	{
+		std::lock_guard<std::mutex> guard(dataPlane->currentGlobalBaseId_mutex);
+		dataPlane->currentGlobalBaseId ^= 1;
+	}
 
-	switchGlobalBase();
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	result = eResult::success;
+	eResult result = eResult::success;
 	for (auto& iter : dataPlane->globalBases)
 	{
 		auto* globalBaseNext = iter.second[dataPlane->currentGlobalBaseId ^ 1];
@@ -202,18 +245,7 @@ common::idp::updateGlobalBase::response cControlPlane::updateGlobalBase(const co
 		}
 	}
 
-	if (result != eResult::success)
-	{
-		return result;
-	}
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	waitAllWorkers();
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	return eResult::success;
+	return;
 }
 
 eResult cControlPlane::updateGlobalBaseBalancer(const common::idp::updateGlobalBaseBalancer::request& request)
@@ -973,7 +1005,6 @@ common::idp::limits::response cControlPlane::limits()
 			             YANET_CONFIG_ROUTE_TUNNEL_LPM6_EXTENDED_SIZE);
 
 			globalBase->updater.acl.network_table.limits(response, "acl.network.ht");
-			globalBase->updater.acl.transport_table.limits(response, "acl.transport.ht");
 			globalBase->updater.acl.total_table.limits(response, "acl.total.ht");
 			globalBase->updater.acl.network_ipv4_source.limits(response, "acl.network.v4.source.lpm");
 			globalBase->updater.acl.network_ipv4_destination.limits(response, "acl.network.v4.destination.lpm");
@@ -1003,6 +1034,7 @@ common::idp::limits::response cControlPlane::limits()
 	}
 
 	dregress.limits(response);
+	dataPlane->acl_module.limits(response);
 
 	return response;
 }
@@ -1366,18 +1398,18 @@ void cControlPlane::switchBase()
 
 void cControlPlane::switchGlobalBase()
 {
-	YADECAP_MEMORY_BARRIER_COMPILE;
+	// YADECAP_MEMORY_BARRIER_COMPILE;
 
-	{
-		std::lock_guard<std::mutex> guard(dataPlane->currentGlobalBaseId_mutex);
-		dataPlane->currentGlobalBaseId ^= 1;
-	}
+	// {
+	// 	std::lock_guard<std::mutex> guard(dataPlane->currentGlobalBaseId_mutex);
+	// 	dataPlane->currentGlobalBaseId ^= 1;
+	// }
 
-	YADECAP_MEMORY_BARRIER_COMPILE;
+	// YADECAP_MEMORY_BARRIER_COMPILE;
 
-	dataPlane->switch_worker_base();
+	// dataPlane->switch_worker_base();
 
-	YADECAP_MEMORY_BARRIER_COMPILE;
+	// YADECAP_MEMORY_BARRIER_COMPILE;
 }
 
 void cControlPlane::waitAllWorkers()

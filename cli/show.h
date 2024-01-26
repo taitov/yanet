@@ -873,10 +873,8 @@ void shm_tsc_info()
 void shm_tsc_set_state(bool state)
 {
 	interface::dataPlane dataplane;
-	common::idp::updateGlobalBase::request globalbase;
-	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::tsc_state_update,
-	                        state);
-	dataplane.updateGlobalBase(globalbase);
+	common::idp::updateGlobalBase::request globalbase = {{common::idp::updateGlobalBase::requestType::tsc_state_update, state}};
+	dataplane.update({std::move(globalbase), std::nullopt});
 }
 
 using dataplane::perf::tsc_base_values;
@@ -911,10 +909,9 @@ void shm_tsc_set_base_value(std::string counter_name, uint32_t value)
 	if (counter_name_to_offset.count(counter_name) != 0)
 	{
 		interface::dataPlane dataplane;
-		common::idp::updateGlobalBase::request globalbase;
-		globalbase.emplace_back(common::idp::updateGlobalBase::requestType::tscs_base_value_update,
-		                        common::idp::updateGlobalBase::tscs_base_value_update::request{counter_name_to_offset.at(counter_name), value});
-		dataplane.updateGlobalBase(globalbase);
+		common::idp::updateGlobalBase::request globalbase = {{common::idp::updateGlobalBase::requestType::tscs_base_value_update,
+		                                                      common::idp::updateGlobalBase::tscs_base_value_update::request(counter_name_to_offset.at(counter_name), value)}};
+		dataplane.update({std::move(globalbase), std::nullopt});
 	}
 	else
 	{

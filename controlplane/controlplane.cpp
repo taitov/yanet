@@ -54,6 +54,7 @@ eResult cControlPlane::init(const std::string& jsonFilePath)
 	modules.emplace_back(&durations);
 	modules.emplace_back(&nat64stateful);
 	modules.emplace_back(&nat46clat);
+	modules.emplace_back(&memory_manager);
 
 	for (auto* module : modules)
 	{
@@ -176,10 +177,8 @@ eResult cControlPlane::init(const std::string& jsonFilePath)
 	}
 	else
 	{
-		common::idp::updateGlobalBase::request globalbase;
-		globalbase.emplace_back(common::idp::updateGlobalBase::requestType::clear,
-		                        std::tuple<>{});
-		dataPlane.updateGlobalBase(globalbase);
+		common::idp::updateGlobalBase::request globalbase = {{common::idp::updateGlobalBase::requestType::clear, std::tuple<>()}};
+		dataPlane.update({globalbase, std::nullopt});
 	}
 	durations.add("init", start);
 	loadConfigStatus = true;
@@ -904,7 +903,7 @@ eResult cControlPlane::loadConfig(const std::string& rootFilePath,
 				YANET_LOG_INFO("updating globalbase (stage 5)\n");
 
 				addConfig(serial, converter.getBaseNext());
-				const auto result = dataPlane.updateGlobalBase(std::move(globalbase));
+				const auto result = dataPlane.update({std::move(globalbase), std::move(converter.get_acl())});
 				if (result != eResult::success)
 				{
 					// Since now the dataplane is locked for further changes

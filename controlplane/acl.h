@@ -24,7 +24,7 @@ struct result_t
 	common::idp::updateGlobalBase::acl_network_table::request acl_network_table;
 	common::idp::updateGlobalBase::acl_network_flags::request acl_network_flags;
 	common::idp::updateGlobalBase::acl_transport_layers::request acl_transport_layers;
-	std::vector<common::idp::updateGlobalBase::acl_transport_table::request> acl_transport_tables;
+	std::vector<common::idp::acl_transport_table::request> acl_transport_tables;
 	common::idp::updateGlobalBase::acl_total_table::request acl_total_table;
 	common::idp::updateGlobalBase::acl_values::request acl_values;
 

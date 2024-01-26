@@ -32,7 +32,9 @@ public:
 	void stop();
 	void join();
 
+	eResult update(const common::idp::update::request& request);
 	common::idp::updateGlobalBase::response updateGlobalBase(const common::idp::updateGlobalBase::request& request);
+	void globalbase_flush(const common::idp::updateGlobalBase::request& request);
 	eResult updateGlobalBaseBalancer(const common::idp::updateGlobalBaseBalancer::request& request);
 	common::idp::getGlobalBase::response getGlobalBase(const common::idp::getGlobalBase::request& request);
 	common::idp::getWorkerStats::response getWorkerStats(const common::idp::getWorkerStats::request& request);

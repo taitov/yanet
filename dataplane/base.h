@@ -8,6 +8,7 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 
+#include "acl.h"
 #include "neighbor.h"
 #include "type.h"
 
@@ -87,6 +88,7 @@ public:
 
 	dataplane::globalBase::generation* globalBase;
 	dataplane::neighbor::hashtable const* neighbor_hashtable;
+	dataplane::acl::transport_table::hashtable_t const* acl_transport_table;
 } __rte_aligned(2 * RTE_CACHE_LINE_SIZE);
 
 }

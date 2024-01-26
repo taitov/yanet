@@ -26,6 +26,11 @@ public:
 		return globalbase;
 	}
 
+	common::acl::idp::request& get_acl()
+	{
+		return acl_request;
+	}
+
 protected:
 	void processLogicalPorts();
 	void processRoutes();
@@ -68,5 +73,6 @@ private:
 
 	controlplane::base_t baseNext;
 	common::idp::updateGlobalBase::request globalbase;
+	common::acl::idp::request acl_request;
 	common::idp::limits::response limits;
 };

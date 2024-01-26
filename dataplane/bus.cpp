@@ -194,9 +194,9 @@ void cBus::clientThread(int clientSocket)
 
 		const common::idp::requestType& type = std::get<0>(request);
 		YANET_LOG_DEBUG("request type %d\n", (int)type);
-		if (type == common::idp::requestType::updateGlobalBase)
+		if (type == common::idp::requestType::update)
 		{
-			response = callWithResponse(&cControlPlane::updateGlobalBase, request);
+			response = callWithResponse(&cControlPlane::update, request);
 		}
 		else if (type == common::idp::requestType::updateGlobalBaseBalancer)
 		{
@@ -350,33 +350,9 @@ void cBus::clientThread(int clientSocket)
 		{
 			response = callWithResponse(&cControlPlane::balancer_state_clear, request);
 		}
-		else if (type == common::idp::requestType::neighbor_show)
+		else if (type == common::idp::requestType::memory_manager_update)
 		{
-			response = dataPlane->neighbor.neighbor_show();
-		}
-		else if (type == common::idp::requestType::neighbor_insert)
-		{
-			response = dataPlane->neighbor.neighbor_insert(std::get<common::idp::neighbor_insert::request>(std::get<1>(request)));
-		}
-		else if (type == common::idp::requestType::neighbor_remove)
-		{
-			response = dataPlane->neighbor.neighbor_remove(std::get<common::idp::neighbor_remove::request>(std::get<1>(request)));
-		}
-		else if (type == common::idp::requestType::neighbor_clear)
-		{
-			response = dataPlane->neighbor.neighbor_clear();
-		}
-		else if (type == common::idp::requestType::neighbor_flush)
-		{
-			response = dataPlane->neighbor.neighbor_flush();
-		}
-		else if (type == common::idp::requestType::neighbor_update_interfaces)
-		{
-			response = dataPlane->neighbor.neighbor_update_interfaces(std::get<common::idp::neighbor_update_interfaces::request>(std::get<1>(request)));
-		}
-		else if (type == common::idp::requestType::neighbor_stats)
-		{
-			response = dataPlane->neighbor.neighbor_stats();
+			response = dataPlane->memory_manager.memory_manager_update(std::get<common::idp::memory_manager_update::request>(std::get<1>(request)));
 		}
 		else
 		{

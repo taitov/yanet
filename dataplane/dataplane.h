@@ -21,6 +21,7 @@
 #include "bus.h"
 #include "controlplane.h"
 #include "globalbase.h"
+#include "memory_manager.h"
 #include "neighbor.h"
 #include "report.h"
 #include "type.h"
@@ -141,6 +142,7 @@ public:
 	void run_on_worker_gc(const tSocketId socket_id, const std::function<bool()>& callback);
 
 	void switch_worker_base();
+	void wait_all_workers();
 
 	inline uint32_t get_current_time() const
 	{
@@ -309,6 +311,11 @@ protected:
 	static int lcoreThread(void* args);
 	void timestamp_thread();
 
+	void globalbase_update_worker_base(const std::vector<std::tuple<tSocketId, dataplane::base::generation*>>& worker_base_nexts);
+	void globalbase_update_before(const common::idp::update::request& request);
+	void globalbase_update(const common::idp::update::request& request, common::idp::update::response& response);
+	void globalbase_update_after(const common::idp::update::request& request);
+
 protected:
 	friend class cWorker;
 	friend class cReport;
@@ -331,6 +338,7 @@ protected:
 	std::map<tCoreId, cWorker*> workers;
 	std::map<tCoreId, worker_gc_t*> worker_gcs;
 
+	std::mutex nextGlobalBaseId_mutex;
 	std::mutex currentGlobalBaseId_mutex;
 	uint8_t currentGlobalBaseId;
 	std::map<tSocketId, dataplane::globalBase::atomic*> globalBaseAtomics;
@@ -356,12 +364,6 @@ protected:
 
 	common::idp::get_shm_tsc_info::response tscs_meta;
 
-	/// modules
-	cReport report;
-	std::unique_ptr<cControlPlane> controlPlane;
-	cBus bus;
-	dataplane::neighbor::module neighbor;
-
 	// array instead of the table - how many coreIds can be there?
 	std::unordered_map<uint32_t, std::unordered_map<std::string, uint64_t*>> coreId_to_stats_tables;
 
@@ -380,4 +382,12 @@ protected:
 	std::vector<std::thread> threads;
 
 	mutable std::mutex dpdk_mutex;
+
+public: ///< modules
+	cReport report;
+	std::unique_ptr<cControlPlane> controlPlane;
+	cBus bus;
+	dataplane::memory_manager memory_manager;
+	dataplane::neighbor::module neighbor;
+	dataplane::acl::module acl_module;
 };

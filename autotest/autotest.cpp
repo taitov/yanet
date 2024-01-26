@@ -1308,8 +1308,6 @@ void tAutotest::mainThread()
 				this->request.swap(request);
 			}
 
-			dataPlane.neighbor_flush();
-
 			YAML::Node yamlRoot = YAML::LoadFile(configFilePath + "/autotest.yaml");
 
 			for (const YAML::Node& yamlStep : yamlRoot["steps"])

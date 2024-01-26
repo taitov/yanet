@@ -15,6 +15,8 @@
 #include "acl.h"
 #include "balancer.h"
 #include "config.h"
+#include "limit.h"
+#include "memory_manager.h"
 #include "neighbor.h"
 #include "result.h"
 #include "scheduler.h"
@@ -35,7 +37,7 @@ enum class errorType : uint32_t
 
 enum class requestType : uint32_t
 {
-	updateGlobalBase,
+	update, ///< update dataplane bases
 	updateGlobalBaseBalancer,
 	getGlobalBase,
 	getWorkerStats,
@@ -75,13 +77,8 @@ enum class requestType : uint32_t
 	set_shm_tsc_state,
 	dump_physical_port,
 	balancer_state_clear,
-	neighbor_show,
-	neighbor_insert,
-	neighbor_remove,
-	neighbor_clear,
-	neighbor_flush,
-	neighbor_update_interfaces,
-	neighbor_stats,
+	memory_manager_update,
+	memory_manager_stats,
 	size, // size should always be at the bottom of the list, this enum allows us to find out the size of the enum list
 };
 
@@ -141,16 +138,11 @@ enum class requestType : uint32_t
 	route_tunnel_weight_update,
 	route_tunnel_value_update,
 	early_decap_flags,
-	acl_network_ipv4_source,
-	acl_network_ipv4_destination,
 	acl_network_ipv6_source,
-	acl_network_ipv6_destination_ht,
 	acl_network_ipv6_destination,
 	acl_network_table,
 	acl_network_flags,
 	acl_transport_layers,
-	acl_transport_table,
-	acl_total_table,
 	acl_values,
 	dregress_prefix_update,
 	dregress_prefix_remove,
@@ -305,24 +297,9 @@ namespace update_early_decap_flags
 using request = bool;
 }
 
-namespace acl_network_ipv4_source
-{
-using request = std::vector<acl::tree_chunk_8bit_t>;
-}
-
-namespace acl_network_ipv4_destination
-{
-using request = std::vector<acl::tree_chunk_8bit_t>;
-}
-
 namespace acl_network_ipv6_source
 {
 using request = std::vector<acl::tree_chunk_8bit_t>;
-}
-
-namespace acl_network_ipv6_destination_ht
-{
-using request = std::vector<std::tuple<ipv6_address_t, tAclGroupId>>;
 }
 
 namespace acl_network_ipv6_destination
@@ -352,16 +329,6 @@ using layer = std::tuple<std::vector<acl::ranges_uint8_t>, ///< protocol
                          std::vector<acl::ranges_uint16_t>>; ///< icmp.identifier
 
 using request = std::vector<layer>;
-}
-
-namespace acl_transport_table
-{
-using request = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
-}
-
-namespace acl_total_table
-{
-using request = std::vector<std::tuple<acl::total_key_t, tAclGroupId>>;
 }
 
 namespace acl_values
@@ -517,13 +484,10 @@ using requestVariant = std::variant<std::tuple<>,
                                     update_balancer::request,
                                     update_balancer_services::request,
                                     route_tunnel_weight_update::request,
-                                    acl_network_ipv4_source::request, /// + acl_network_ipv4_destination, acl_network_ipv6_source, acl_network_ipv6_destination
-                                    acl_network_ipv6_destination_ht::request,
+                                    acl_network_ipv6_source::request, /// + acl_network_ipv4_destination, acl_network_ipv6_source, acl_network_ipv6_destination
                                     acl_network_table::request, /// + aclTransportDestination
                                     acl_network_flags::request,
                                     acl_transport_layers::request,
-                                    acl_transport_table::request,
-                                    acl_total_table::request,
                                     acl_values::request,
                                     dump_tags_ids::request,
                                     lpm::request,
@@ -909,12 +873,7 @@ using request = std::tuple<std::string, ///< interface_name
 
 namespace limits
 {
-using limit = std::tuple<std::string, ///< name
-                         std::optional<tSocketId>,
-                         uint64_t, ///< current
-                         uint64_t>; ///< maximum
-
-using response = std::vector<limit>;
+using response = common::limit::limits;
 }
 
 namespace samples
@@ -948,47 +907,121 @@ using request = std::tuple<id, ///< latch id
 using response = eResult;
 }
 
-namespace neighbor_show
+namespace memory_manager_update
 {
-using response = std::vector<std::tuple<std::string, ///< route_name
-                                        std::string, ///< interface_name
-                                        ip_address_t, ///< ip_address
-                                        mac_address_t, ///< mac_address
-                                        std::optional<uint32_t>>>; ///< last_update_timestamp
+using request = memory_manager::memory_group;
 }
 
-namespace neighbor_insert
+namespace update
 {
-using request = std::tuple<std::string, ///< route_name
-                           std::string, ///< interface_name
-                           ip_address_t, ///< ip_address
-                           mac_address_t>; ///< mac_address
-}
 
-namespace neighbor_remove
+class request
 {
-using request = std::tuple<std::string, ///< route_name
-                           std::string, ///< interface_name
-                           ip_address_t>; ///< ip_address
-}
+public:
+	auto& globalbase()
+	{
+		return std::get<0>(request);
+	}
 
-namespace neighbor_update_interfaces
-{
-using request = std::vector<std::tuple<tInterfaceId, ///< interface_id
-                                       std::string, ///< route_name
-                                       std::string>>; ///< interface_name
-}
+	const auto& globalbase() const
+	{
+		return std::get<0>(request);
+	}
 
-namespace neighbor_stats
+	auto& acl()
+	{
+		return std::get<1>(request);
+	}
+
+	const auto& acl() const
+	{
+		return std::get<1>(request);
+	}
+
+	auto& neighbor()
+	{
+		return std::get<2>(request);
+	}
+
+	const auto& neighbor() const
+	{
+		return std::get<2>(request);
+	}
+
+	void pop(stream_in_t& stream)
+	{
+		stream.pop(request);
+	}
+
+	void push(stream_out_t& stream) const
+	{
+		stream.push(request);
+	}
+
+public:
+	std::tuple<std::optional<updateGlobalBase::request>,
+	           std::optional<acl::idp::request>,
+	           std::optional<neighbor::idp::request>>
+	        request;
+};
+
+class response
 {
-using response = common::neighbor::stats;
+public:
+	auto& globalbase()
+	{
+		return std::get<0>(response);
+	}
+
+	const auto& globalbase() const
+	{
+		return std::get<0>(response);
+	}
+
+	auto& acl()
+	{
+		return std::get<1>(response);
+	}
+
+	const auto& acl() const
+	{
+		return std::get<1>(response);
+	}
+
+	auto& neighbor()
+	{
+		return std::get<2>(response);
+	}
+
+	const auto& neighbor() const
+	{
+		return std::get<2>(response);
+	}
+
+	void pop(stream_in_t& stream)
+	{
+		stream.pop(response);
+	}
+
+	void push(stream_out_t& stream) const
+	{
+		stream.push(response);
+	}
+
+public:
+	std::tuple<std::optional<updateGlobalBase::response>,
+	           std::optional<acl::idp::response>,
+	           std::optional<neighbor::idp::response>>
+	        response;
+};
+
 }
 
 //
 
 using request = std::tuple<requestType,
                            std::variant<std::tuple<>,
-                                        updateGlobalBase::request,
+                                        update::request,
                                         updateGlobalBaseBalancer::request,
                                         getGlobalBase::request,
                                         getControlPlanePortStats::request,
@@ -1003,12 +1036,11 @@ using request = std::tuple<requestType,
                                         update_vip_vport_proto::request,
                                         get_counter_by_name::request,
                                         dump_physical_port::request,
-                                        neighbor_insert::request,
-                                        neighbor_remove::request,
-                                        neighbor_update_interfaces::request>>;
+                                        memory_manager_update::request>>;
 
 using response = std::variant<std::tuple<>,
-                              updateGlobalBase::response, ///< + others which have eResult as response
+                              eResult,
+                              update::response,
                               getGlobalBase::response,
                               getWorkerStats::response,
                               getSlowWorkerStats::response,
@@ -1037,7 +1069,5 @@ using response = std::variant<std::tuple<>,
                               samples::response,
                               get_counter_by_name::response,
                               get_shm_info::response,
-                              get_shm_tsc_info::response,
-                              neighbor_show::response,
-                              neighbor_stats::response>;
+                              get_shm_tsc_info::response>;
 }

@@ -5,6 +5,7 @@
 #include "common.h"
 #include "dataplane.h"
 #include "globalbase.h"
+#include "memory_manager.h"
 #include "worker.h"
 
 #include "common/counters.h"
@@ -140,21 +141,9 @@ eResult generation::update(const common::idp::updateGlobalBase::request& request
 		{
 			result = update_early_decap_flags(std::get<common::idp::updateGlobalBase::update_early_decap_flags::request>(data));
 		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_network_ipv4_source)
-		{
-			result = acl_network_ipv4_source(std::get<common::idp::updateGlobalBase::acl_network_ipv4_source::request>(data));
-		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_network_ipv4_destination)
-		{
-			result = acl_network_ipv4_destination(std::get<common::idp::updateGlobalBase::acl_network_ipv4_destination::request>(data));
-		}
 		else if (type == common::idp::updateGlobalBase::requestType::acl_network_ipv6_source)
 		{
 			result = acl_network_ipv6_source(std::get<common::idp::updateGlobalBase::acl_network_ipv6_source::request>(data));
-		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_network_ipv6_destination_ht)
-		{
-			result = acl_network_ipv6_destination_ht(std::get<common::idp::updateGlobalBase::acl_network_ipv6_destination_ht::request>(data));
 		}
 		else if (type == common::idp::updateGlobalBase::requestType::acl_network_ipv6_destination)
 		{
@@ -171,14 +160,6 @@ eResult generation::update(const common::idp::updateGlobalBase::request& request
 		else if (type == common::idp::updateGlobalBase::requestType::acl_transport_layers)
 		{
 			result = acl_transport_layers(std::get<common::idp::updateGlobalBase::acl_transport_layers::request>(data));
-		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_transport_table)
-		{
-			result = acl_transport_table(std::get<common::idp::updateGlobalBase::acl_transport_table::request>(data));
-		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_total_table)
-		{
-			result = acl_total_table(std::get<common::idp::updateGlobalBase::acl_total_table::request>(data));
 		}
 		else if (type == common::idp::updateGlobalBase::requestType::acl_values)
 		{
@@ -418,9 +399,6 @@ eResult generation::clear()
 	sampler_enabled = 0;
 	serial = 0;
 
-	updater.acl.network_ipv6_destination_ht.clear();
-	updater.acl.transport_table.clear();
-	updater.acl.total_table.clear();
 	acl.values[0] = {};
 	tun64mappingsTable.clear();
 
@@ -1856,34 +1834,6 @@ eResult generation::update_early_decap_flags(const common::idp::updateGlobalBase
 	return result;
 }
 
-eResult generation::acl_network_ipv4_source(const common::idp::updateGlobalBase::acl_network_ipv4_source::request& request)
-{
-	eResult result = eResult::success;
-
-	result = updater.acl.network_ipv4_source.update(request);
-	if (result != eResult::success)
-	{
-		YANET_LOG_ERROR("acl.network.ipv4.source.update(): %s\n", result_to_c_str(result));
-		return result;
-	}
-
-	return result;
-}
-
-eResult generation::acl_network_ipv4_destination(const common::idp::updateGlobalBase::acl_network_ipv4_destination::request& request)
-{
-	eResult result = eResult::success;
-
-	result = updater.acl.network_ipv4_destination.update(request);
-	if (result != eResult::success)
-	{
-		YANET_LOG_ERROR("acl.network.ipv4.destination.update(): %s\n", result_to_c_str(result));
-		return result;
-	}
-
-	return result;
-}
-
 eResult generation::acl_network_ipv6_source(const common::idp::updateGlobalBase::acl_network_ipv6_source::request& request)
 {
 	eResult result = eResult::success;
@@ -1896,17 +1846,6 @@ eResult generation::acl_network_ipv6_source(const common::idp::updateGlobalBase:
 	}
 
 	return result;
-}
-
-eResult generation::acl_network_ipv6_destination_ht(const common::idp::updateGlobalBase::acl_network_ipv6_destination_ht::request& request)
-{
-	auto result = updater.acl.network_ipv6_destination_ht.update(request);
-	if (result != eResult::success)
-	{
-		/// dont panic. this is fine
-	}
-
-	return eResult::success;
 }
 
 eResult generation::acl_network_ipv6_destination(const common::idp::updateGlobalBase::acl_network_ipv6_destination::request& request)
@@ -2044,34 +1983,6 @@ eResult generation::acl_transport_layers(const common::idp::updateGlobalBase::ac
 			YANET_LOG_ERROR("acl.transport_layer.icmp.identifier.update(): %s\n", result_to_c_str(result));
 			return result;
 		}
-	}
-
-	return result;
-}
-
-eResult generation::acl_transport_table(const common::idp::updateGlobalBase::acl_transport_table::request& request)
-{
-	eResult result = eResult::success;
-
-	result = updater.acl.transport_table.update(request);
-	if (result != eResult::success)
-	{
-		YANET_LOG_ERROR("acl.transport_table.update(): %s\n", result_to_c_str(result));
-		return result;
-	}
-
-	return result;
-}
-
-eResult generation::acl_total_table(const common::idp::updateGlobalBase::acl_total_table::request& request)
-{
-	eResult result = eResult::success;
-
-	result = updater.acl.total_table.update(request);
-	if (result != eResult::success)
-	{
-		YANET_LOG_ERROR("acl.total_table.update(): %s\n", result_to_c_str(result));
-		return result;
 	}
 
 	return result;

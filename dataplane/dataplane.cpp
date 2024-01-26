@@ -32,6 +32,7 @@
 #include "common/result.h"
 #include "common/tsc_deltas.h"
 #include "dataplane.h"
+#include "debug_latch.h"
 #include "globalbase.h"
 #include "report.h"
 #include "sock_dev.h"
@@ -226,6 +227,12 @@ eResult cDataPlane::init(const std::string& binaryPath,
 		return result;
 	}
 
+	result = memory_manager.init(this);
+	if (result != eResult::success)
+	{
+		return result;
+	}
+
 	result = controlPlane->init(config.use_kernel_interface);
 	if (result != eResult::success)
 	{
@@ -239,6 +246,12 @@ eResult cDataPlane::init(const std::string& binaryPath,
 	}
 
 	result = neighbor.init(this);
+	if (result != eResult::success)
+	{
+		return result;
+	}
+
+	result = acl_module.init(this);
 	if (result != eResult::success)
 	{
 		return result;
@@ -655,26 +668,8 @@ eResult cDataPlane::initGlobalBases()
 		}
 
 		{
-			auto* acl_network_ipv4_source = hugepage_create_dynamic<dataplane::globalBase::acl::network_ipv4_source>(socket_id, getConfigValue(eConfigType::acl_network_lpm4_chunks_size), globalbase->updater.acl.network_ipv4_source);
-			if (!acl_network_ipv4_source)
-			{
-				return nullptr;
-			}
-
-			auto* acl_network_ipv4_destination = hugepage_create_dynamic<dataplane::globalBase::acl::network_ipv4_destination>(socket_id, getConfigValue(eConfigType::acl_network_lpm4_chunks_size), globalbase->updater.acl.network_ipv4_destination);
-			if (!acl_network_ipv4_destination)
-			{
-				return nullptr;
-			}
-
 			auto* acl_network_ipv6_source = hugepage_create_dynamic<dataplane::globalBase::acl::network_ipv6_source>(socket_id, getConfigValue(eConfigType::acl_network_source_lpm6_chunks_size), globalbase->updater.acl.network_ipv6_source);
 			if (!acl_network_ipv6_source)
-			{
-				return nullptr;
-			}
-
-			auto* acl_network_ipv6_destination_ht = hugepage_create_dynamic<dataplane::globalBase::acl::network_ipv6_destination_ht>(socket_id, getConfigValue(eConfigType::acl_network_destination_ht_size), globalbase->updater.acl.network_ipv6_destination_ht);
-			if (!acl_network_ipv6_destination_ht)
 			{
 				return nullptr;
 			}
@@ -711,18 +706,6 @@ eResult cDataPlane::initGlobalBases()
 				return nullptr;
 			}
 
-			auto* acl_transport_table = hugepage_create_dynamic<dataplane::globalBase::acl::transport_table>(socket_id, getConfigValue(eConfigType::acl_transport_ht_size), globalbase->updater.acl.transport_table);
-			if (!acl_transport_table)
-			{
-				return nullptr;
-			}
-
-			auto* acl_total_table = hugepage_create_dynamic<dataplane::globalBase::acl::total_table>(socket_id, getConfigValue(eConfigType::acl_total_ht_size), globalbase->updater.acl.total_table);
-			if (!acl_total_table)
-			{
-				return nullptr;
-			}
-
 			const auto acl_values_size = getConfigValue(eConfigType::acl_values_size);
 			if (acl_values_size < 2)
 			{
@@ -736,16 +719,11 @@ eResult cDataPlane::initGlobalBases()
 				return nullptr;
 			}
 
-			globalbase->acl.network.ipv4.source = acl_network_ipv4_source;
-			globalbase->acl.network.ipv4.destination = acl_network_ipv4_destination;
 			globalbase->acl.network.ipv6.source = acl_network_ipv6_source;
-			globalbase->acl.network.ipv6.destination_ht = acl_network_ipv6_destination_ht;
 			globalbase->acl.network.ipv6.destination = acl_network_ipv6_destination;
 			globalbase->acl.network_table = acl_network_table;
 			globalbase->acl.transport_layers_mask = acl_transport_layers_size - 1;
 			globalbase->acl.transport_layers = acl_transport_layers;
-			globalbase->acl.transport_table = acl_transport_table;
-			globalbase->acl.total_table = acl_total_table;
 			globalbase->acl.values = acl_values;
 		}
 
@@ -1166,6 +1144,7 @@ void cDataPlane::init_worker_base()
 	}
 
 	neighbor.update_worker_base(base_nexts);
+	acl_module.update_worker_base(base_nexts);
 }
 
 void cDataPlane::hugepage_destroy(void* pointer)
@@ -1242,6 +1221,78 @@ void cDataPlane::timestamp_thread()
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
+}
+
+void cDataPlane::globalbase_update_worker_base(const std::vector<std::tuple<tSocketId, dataplane::base::generation*>>& worker_base_nexts)
+{
+	std::lock_guard<std::mutex> guard(currentGlobalBaseId_mutex);
+	for (const auto& [socket_id, base_next] : worker_base_nexts)
+	{
+		base_next->globalBase = globalBases[socket_id][currentGlobalBaseId];
+	}
+}
+
+void cDataPlane::globalbase_update_before(const common::idp::update::request& request)
+{
+	if (!request.globalbase())
+	{
+		return;
+	}
+
+	nextGlobalBaseId_mutex.lock();
+}
+
+void cDataPlane::globalbase_update(const common::idp::update::request& request,
+                                   common::idp::update::response& response)
+{
+	if (!request.globalbase())
+	{
+		return;
+	}
+
+	for (auto& iter : globalBases)
+	{
+		auto* globalBaseNext = iter.second[currentGlobalBaseId ^ 1];
+		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_pre_update);
+		response.globalbase() = globalBaseNext->update(*request.globalbase());
+		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_post_update);
+		if (response.globalbase() != eResult::success)
+		{
+			/// @todo: write error
+			return;
+		}
+	}
+
+	{
+		std::lock_guard<std::mutex> guard(currentGlobalBaseId_mutex);
+		currentGlobalBaseId ^= 1;
+	}
+
+	return;
+}
+
+void cDataPlane::globalbase_update_after(const common::idp::update::request& request)
+{
+	if (!request.globalbase())
+	{
+		return;
+	}
+
+	for (auto& iter : globalBases)
+	{
+		auto* globalBaseNext = iter.second[currentGlobalBaseId ^ 1];
+		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_pre_update);
+		eResult result = globalBaseNext->update(*request.globalbase());
+		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_post_update);
+		if (result != eResult::success)
+		{
+			// Practically unreachable.
+			/// @todo: write error
+			break;
+		}
+	}
+
+	nextGlobalBaseId_mutex.unlock();
 }
 
 void cDataPlane::start()
@@ -1630,17 +1681,87 @@ void cDataPlane::switch_worker_base()
 	}
 
 	/// update base_next
-	{
-		std::lock_guard<std::mutex> guard(currentGlobalBaseId_mutex);
-		for (const auto& [socket_id, base_next] : base_nexts)
-		{
-			base_next->globalBase = globalBases[socket_id][currentGlobalBaseId];
-		}
-	}
+	globalbase_update_worker_base(base_nexts);
 	neighbor.update_worker_base(base_nexts);
+	acl_module.update_worker_base(base_nexts);
 
 	/// switch
-	controlPlane->switchBase();
+	{
+		YADECAP_MEMORY_BARRIER_COMPILE;
+
+		for (auto& [core_id, worker] : workers)
+		{
+			(void)core_id;
+			worker->currentBaseId ^= 1;
+		}
+
+		for (auto& [core_id, worker] : worker_gcs)
+		{
+			(void)core_id;
+			worker->current_base_id ^= 1;
+		}
+
+		YADECAP_MEMORY_BARRIER_COMPILE;
+
+		wait_all_workers();
+
+		YADECAP_MEMORY_BARRIER_COMPILE;
+
+		for (auto& [core_id, worker] : workers)
+		{
+			(void)core_id;
+
+			auto& base = worker->bases[worker->currentBaseId];
+			auto& base_next = worker->bases[worker->currentBaseId ^ 1];
+
+			base_next = base;
+		}
+
+		for (auto& [core_id, worker] : worker_gcs)
+		{
+			(void)core_id;
+
+			auto& base = worker->bases[worker->current_base_id];
+			auto& base_next = worker->bases[worker->current_base_id ^ 1];
+
+			base_next = base;
+		}
+
+		YADECAP_MEMORY_BARRIER_COMPILE;
+	}
+}
+
+void cDataPlane::wait_all_workers()
+{
+	YADECAP_MEMORY_BARRIER_COMPILE;
+
+	for (const auto& [core_id, worker] : workers)
+	{
+		(void)core_id;
+
+		uint64_t startIteration = worker->iteration;
+		uint64_t nextIteration = startIteration;
+		while (nextIteration - startIteration <= (uint64_t)16)
+		{
+			YADECAP_MEMORY_BARRIER_COMPILE;
+			nextIteration = worker->iteration;
+		}
+	}
+
+	for (const auto& [core_id, worker] : worker_gcs)
+	{
+		(void)core_id;
+
+		uint64_t startIteration = worker->iteration;
+		uint64_t nextIteration = startIteration;
+		while (nextIteration - startIteration <= (uint64_t)16)
+		{
+			YADECAP_MEMORY_BARRIER_COMPILE;
+			nextIteration = worker->iteration;
+		}
+	}
+
+	YADECAP_MEMORY_BARRIER_COMPILE;
 }
 
 eResult cDataPlane::parseConfig(const std::string& configFilePath)

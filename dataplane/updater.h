@@ -57,7 +57,7 @@ public:
 			constexpr uint64_t keys_size_min = 128;
 
 			uint64_t keys_size = std::max(keys_size_min,
-			                              (uint64_t)keys.size());
+			                              (uint64_t)(4ull * keys.size()));
 			while (keys_count < keys_size)
 			{
 				keys_count <<= 1;

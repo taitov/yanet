@@ -173,10 +173,6 @@ eResult generation::update(const common::idp::updateGlobalBase::request& request
 		{
 			result = acl_transport_layers(std::get<common::idp::updateGlobalBase::acl_transport_layers::request>(data));
 		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_total_table)
-		{
-			result = acl_total_table(std::get<common::idp::updateGlobalBase::acl_total_table::request>(data));
-		}
 		else if (type == common::idp::updateGlobalBase::requestType::acl_values)
 		{
 			result = acl_values(std::get<common::idp::updateGlobalBase::acl_values::request>(data));
@@ -416,7 +412,6 @@ eResult generation::clear()
 	serial = 0;
 
 	updater.acl.network_ipv6_destination_ht.clear();
-	updater.acl.total_table.clear();
 	acl.values[0] = {};
 	tun64mappingsTable.clear();
 
@@ -2040,20 +2035,6 @@ eResult generation::acl_transport_layers(const common::idp::updateGlobalBase::ac
 			YANET_LOG_ERROR("acl.transport_layer.icmp.identifier.update(): %s\n", result_to_c_str(result));
 			return result;
 		}
-	}
-
-	return result;
-}
-
-eResult generation::acl_total_table(const common::idp::updateGlobalBase::acl_total_table::request& request)
-{
-	eResult result = eResult::success;
-
-	result = updater.acl.total_table.update(request);
-	if (result != eResult::success)
-	{
-		YANET_LOG_ERROR("acl.total_table.update(): %s\n", result_to_c_str(result));
-		return result;
 	}
 
 	return result;

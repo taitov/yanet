@@ -16,17 +16,17 @@ public:
 	updater_base();
 	virtual ~updater_base();
 
-	eResult init(const char* name, dataplane::memory_manager* memory_manager);
-	eResult alloc(const tSocketId socket_id, const uint64_t memory_size);
-	void* get_pointer(const tSocketId socket_id);
-	const void* get_pointer(const tSocketId socket_id) const;
-	void free(const tSocketId socket_id);
-	void clear();
+	eResult init(const char* name, dataplane::memory_manager* memory_manager, const tSocketId socket_id);
+	eResult alloc(const uint64_t memory_size);
+	void* get_pointer();
+	const void* get_pointer() const;
+	void free();
 
 protected:
 	std::string name;
 	dataplane::memory_manager* memory_manager;
-	std::map<tSocketId, void*> pointers;
+	tSocketId socket_id;
+	void* pointer;
 };
 
 template<typename key_t,
@@ -37,19 +37,18 @@ class updater_hashtable_mod_id32 : public updater_base
 public:
 	using hashtable_t = hashtable_mod_id32_dynamic<key_t, chunk_size, valid_bit_offset>;
 
-	hashtable_t* get_pointer(const tSocketId socket_id)
+	hashtable_t* get_pointer()
 	{
-		return reinterpret_cast<hashtable_t*>(updater_base::get_pointer(socket_id));
+		return reinterpret_cast<hashtable_t*>(updater_base::get_pointer());
 	}
 
-	const hashtable_t* get_pointer(const tSocketId socket_id) const
+	const hashtable_t* get_pointer() const
 	{
-		return reinterpret_cast<const hashtable_t*>(updater_base::get_pointer(socket_id));
+		return reinterpret_cast<const hashtable_t*>(updater_base::get_pointer());
 	}
 
 	template<typename update_key_t>
-	eResult update(const tSocketId socket_id,
-	               const std::vector<std::tuple<update_key_t, uint32_t>>& keys)
+	eResult update(const std::vector<std::tuple<update_key_t, uint32_t>>& keys)
 	{
 		eResult result = eResult::success;
 
@@ -58,7 +57,7 @@ public:
 			constexpr uint64_t keys_size_min = 128;
 
 			uint64_t keys_size = std::max(keys_size_min,
-			                              (uint64_t)(4ull * keys.size()));
+			                              (uint64_t)keys.size());
 			while (keys_count < keys_size)
 			{
 				keys_count <<= 1;
@@ -67,16 +66,16 @@ public:
 
 		for (;;)
 		{
-			result = alloc(socket_id, hashtable_t::calculate_sizeof(keys_count));
+			result = alloc(hashtable_t::calculate_sizeof(keys_count));
 			if (result != eResult::success)
 			{
 				return result;
 			}
 
-			get_pointer(socket_id)->total_mask = keys_count - 1;
+			get_pointer()->total_mask = keys_count - 1;
 			total_size = keys_count;
 
-			result = fill(socket_id, keys);
+			result = fill(keys);
 			if (result != eResult::success)
 			{
 				/// try again
@@ -91,12 +90,24 @@ public:
 		return eResult::success;
 	}
 
+	template<typename list_T> ///< @todo: common::idp::limits::response
+	void limits(list_T& list) const
+	{
+		list.emplace_back(name + ".keys",
+		                  socket_id,
+		                  keys_count,
+		                  total_size);
+		list.emplace_back(name + ".longest_collision",
+		                  socket_id,
+		                  longest_chain,
+		                  chunk_size);
+	}
+
 protected:
 	template<typename update_key_t>
-	eResult fill(const tSocketId socket_id,
-	             const std::vector<std::tuple<update_key_t, uint32_t>>& keys)
+	eResult fill(const std::vector<std::tuple<update_key_t, uint32_t>>& keys)
 	{
-		auto* hashtable = get_pointer(socket_id);
+		auto* hashtable = get_pointer();
 
 		eResult result = eResult::success;
 
@@ -111,11 +122,11 @@ protected:
 			eResult insert_result;
 			if constexpr (std::is_same_v<update_key_t, key_t>)
 			{
-				insert_result = insert(socket_id, key, value);
+				insert_result = insert(key, value);
 			}
 			else
 			{
-				insert_result = insert(socket_id, key_t::convert(key), value);
+				insert_result = insert(key_t::convert(key), value);
 			}
 
 			if (insert_result != eResult::success)
@@ -146,11 +157,10 @@ protected:
 		return result;
 	}
 
-	eResult insert(const tSocketId socket_id,
-	               const key_t& key,
+	eResult insert(const key_t& key,
 	               const uint32_t value)
 	{
-		auto* hashtable = get_pointer(socket_id);
+		auto* hashtable = get_pointer();
 
 		const uint32_t hash = hashtable_t::calculate_hash(key) & hashtable->total_mask;
 

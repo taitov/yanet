@@ -1513,10 +1513,10 @@ inline void cWorker::acl_ingress_handle4()
 		total_key.transport_id = transport_value;
 	}
 
-	acl.total_table->lookup(hashes,
-	                        key_acl.totals,
-	                        value_acl.totals,
-	                        acl_ingress_stack4.mbufsCount);
+	base.acl_total_table->lookup(hashes,
+	                             key_acl.totals,
+	                             value_acl.totals,
+	                             acl_ingress_stack4.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_ingress_stack4.mbufsCount;
@@ -1704,10 +1704,10 @@ inline void cWorker::acl_ingress_handle6()
 		total_key.transport_id = transport_value;
 	}
 
-	acl.total_table->lookup(hashes,
-	                        key_acl.totals,
-	                        value_acl.totals,
-	                        acl_ingress_stack6.mbufsCount);
+	base.acl_total_table->lookup(hashes,
+	                             key_acl.totals,
+	                             value_acl.totals,
+	                             acl_ingress_stack6.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_ingress_stack6.mbufsCount;
@@ -5224,10 +5224,10 @@ inline void cWorker::acl_egress_handle4()
 		total_key.transport_id = transport_value;
 	}
 
-	acl.total_table->lookup(hashes,
-	                        key_acl.totals,
-	                        value_acl.totals,
-	                        acl_egress_stack4.mbufsCount);
+	base.acl_total_table->lookup(hashes,
+	                             key_acl.totals,
+	                             value_acl.totals,
+	                             acl_egress_stack4.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_egress_stack4.mbufsCount;
@@ -5408,10 +5408,10 @@ inline void cWorker::acl_egress_handle6()
 		total_key.transport_id = transport_value;
 	}
 
-	acl.total_table->lookup(hashes,
-	                        key_acl.totals,
-	                        value_acl.totals,
-	                        acl_egress_stack6.mbufsCount);
+	base.acl_total_table->lookup(hashes,
+	                             key_acl.totals,
+	                             value_acl.totals,
+	                             acl_egress_stack6.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_egress_stack6.mbufsCount;

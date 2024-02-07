@@ -723,12 +723,6 @@ eResult cDataPlane::initGlobalBases()
 				return nullptr;
 			}
 
-			auto* acl_total_table = hugepage_create_dynamic<dataplane::globalBase::acl::total_table>(socket_id, getConfigValue(eConfigType::acl_total_ht_size), globalbase->updater.acl.total_table);
-			if (!acl_total_table)
-			{
-				return nullptr;
-			}
-
 			const auto acl_values_size = getConfigValue(eConfigType::acl_values_size);
 			if (acl_values_size < 2)
 			{
@@ -750,7 +744,6 @@ eResult cDataPlane::initGlobalBases()
 			globalbase->acl.network_table = acl_network_table;
 			globalbase->acl.transport_layers_mask = acl_transport_layers_size - 1;
 			globalbase->acl.transport_layers = acl_transport_layers;
-			globalbase->acl.total_table = acl_total_table;
 			globalbase->acl.values = acl_values;
 		}
 

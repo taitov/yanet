@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include "base.h"
+#include "common/acl.h"
 
 namespace acl
 {
@@ -24,8 +25,8 @@ struct result_t
 	common::idp::updateGlobalBase::acl_network_table::request acl_network_table;
 	common::idp::updateGlobalBase::acl_network_flags::request acl_network_flags;
 	common::idp::updateGlobalBase::acl_transport_layers::request acl_transport_layers;
-	std::vector<common::idp::acl_transport_table::request> acl_transport_tables;
-	common::idp::updateGlobalBase::acl_total_table::request acl_total_table;
+	std::vector<common::acl::idp::acl_transport_table> acl_transport_tables;
+	common::acl::idp::acl_total_table acl_total_table;
 	common::idp::updateGlobalBase::acl_values::request acl_values;
 
 	std::vector<ids_t> ids_map;

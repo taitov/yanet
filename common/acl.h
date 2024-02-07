@@ -298,12 +298,11 @@ using ranges_uint16_t = ranges_t<uint16_t>;
 
 namespace idp
 {
-namespace acl_transport_table
-{
-using request = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
-}
+using acl_transport_table = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
+using acl_total_table = std::vector<std::tuple<acl::total_key_t, tAclGroupId>>;
 
-using request = std::tuple<acl_transport_table::request>;
+using request = std::tuple<acl_transport_table,
+                           acl_total_table>;
 }
 
 }

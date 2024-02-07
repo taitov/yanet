@@ -1005,7 +1005,6 @@ common::idp::limits::response cControlPlane::limits()
 			             YANET_CONFIG_ROUTE_TUNNEL_LPM6_EXTENDED_SIZE);
 
 			globalBase->updater.acl.network_table.limits(response, "acl.network.ht");
-			globalBase->updater.acl.total_table.limits(response, "acl.total.ht");
 			globalBase->updater.acl.network_ipv4_source.limits(response, "acl.network.v4.source.lpm");
 			globalBase->updater.acl.network_ipv4_destination.limits(response, "acl.network.v4.destination.lpm");
 			globalBase->updater.acl.network_ipv6_source.limits(response, "acl.network.v6.source.lpm");

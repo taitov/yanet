@@ -89,6 +89,7 @@ public:
 	dataplane::globalBase::generation* globalBase;
 	dataplane::neighbor::hashtable const* neighbor_hashtable;
 	dataplane::acl::transport_table::hashtable_t const* acl_transport_table;
+	dataplane::acl::total_table::hashtable_t const* acl_total_table;
 } __rte_aligned(2 * RTE_CACHE_LINE_SIZE);
 
 }

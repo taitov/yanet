@@ -1894,9 +1894,9 @@ void config_converter_t::buildAcl()
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_flags, std::move(result.acl_network_flags));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_transport_layers, std::move(result.acl_transport_layers));
 
-	acl_request = {std::move(result.acl_transport_tables[0])};
+	acl_request = {std::move(result.acl_transport_tables[0]),
+	               std::move(result.acl_total_table)};
 
-	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_total_table, std::move(result.acl_total_table));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_values, std::move(result.acl_values));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::dump_tags_ids, std::move(result.dump_id_to_tag));
 

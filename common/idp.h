@@ -85,7 +85,6 @@ enum class requestType : uint32_t
 	neighbor_stats,
 	memory_manager_update,
 	memory_manager_stats,
-	acl_transport_table,
 	size, // size should always be at the bottom of the list, this enum allows us to find out the size of the enum list
 };
 
@@ -153,7 +152,6 @@ enum class requestType : uint32_t
 	acl_network_table,
 	acl_network_flags,
 	acl_transport_layers,
-	acl_total_table,
 	acl_values,
 	dregress_prefix_update,
 	dregress_prefix_remove,
@@ -357,11 +355,6 @@ using layer = std::tuple<std::vector<acl::ranges_uint8_t>, ///< protocol
 using request = std::vector<layer>;
 }
 
-namespace acl_total_table
-{
-using request = std::vector<std::tuple<acl::total_key_t, tAclGroupId>>;
-}
-
 namespace acl_values
 {
 using request = std::vector<acl::value_t>;
@@ -520,7 +513,6 @@ using requestVariant = std::variant<std::tuple<>,
                                     acl_network_table::request, /// + aclTransportDestination
                                     acl_network_flags::request,
                                     acl_transport_layers::request,
-                                    acl_total_table::request,
                                     acl_values::request,
                                     dump_tags_ids::request,
                                     lpm::request,
@@ -986,11 +978,6 @@ namespace memory_manager_update
 using request = memory_manager::memory_group;
 }
 
-namespace acl_transport_table
-{
-using request = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
-}
-
 namespace update
 {
 using request = std::tuple<std::optional<updateGlobalBase::request>,
@@ -1019,8 +1006,7 @@ using request = std::tuple<requestType,
                                         neighbor_insert::request,
                                         neighbor_remove::request,
                                         neighbor_update_interfaces::request,
-                                        memory_manager_update::request,
-                                        acl_transport_table::request>>;
+                                        memory_manager_update::request>>;
 
 using response = std::variant<std::tuple<>,
                               eResult,

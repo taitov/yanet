@@ -66,7 +66,9 @@ public:
 
 		for (;;)
 		{
+			YANET_LOG_INFO("XXX:UPDATE:1\n");
 			result = alloc(hashtable_t::calculate_sizeof(keys_count));
+			YANET_LOG_INFO("XXX:UPDATE:2\n");
 			if (result != eResult::success)
 			{
 				return result;
@@ -75,7 +77,17 @@ public:
 			get_pointer()->total_mask = keys_count - 1;
 			total_size = keys_count;
 
+			YANET_LOG_INFO("XXX:UPDATE:3\n");
+			for (uint32_t i = 0;
+			     i < total_size;
+			     i++)
+			{
+				get_pointer()->pairs[i].value = 0;
+			}
+			YANET_LOG_INFO("XXX:UPDATE:4\n");
+
 			result = fill(keys);
+			YANET_LOG_INFO("XXX:UPDATE:5\n");
 			if (result != eResult::success)
 			{
 				/// try again

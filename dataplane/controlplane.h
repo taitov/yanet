@@ -33,8 +33,6 @@ public:
 	void join();
 
 	eResult update(const common::idp::update::request& request);
-	common::idp::updateGlobalBase::response updateGlobalBase(const common::idp::updateGlobalBase::request& request);
-	void globalbase_flush(const common::idp::updateGlobalBase::request& request);
 	eResult updateGlobalBaseBalancer(const common::idp::updateGlobalBaseBalancer::request& request);
 	common::idp::getGlobalBase::response getGlobalBase(const common::idp::getGlobalBase::request& request);
 	common::idp::getWorkerStats::response getWorkerStats(const common::idp::getWorkerStats::request& request);
@@ -75,7 +73,6 @@ public:
 	eResult balancer_state_clear();
 
 	void switchBase();
-	void switchGlobalBase();
 	virtual void waitAllWorkers();
 
 	void sendPacketToSlowWorker(rte_mbuf* mbuf, const common::globalBase::tFlow& flow); ///< @todo: remove flow

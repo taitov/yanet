@@ -82,7 +82,9 @@ class generation
 public:
 	generation() :
 	        globalBase(nullptr),
-	        neighbor_hashtable(nullptr)
+	        neighbor_hashtable(nullptr),
+	        acl_transport_table(nullptr),
+	        acl_total_table(nullptr)
 	{
 	}
 

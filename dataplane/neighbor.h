@@ -80,6 +80,10 @@ public:
 
 	void report(nlohmann::json& json);
 
+	void update_before(const common::idp::update::request& request);
+	eResult update(const common::idp::update::request& request);
+	void update_after(const common::idp::update::request& request);
+
 protected:
 	void main_thread();
 	void netlink_thread();

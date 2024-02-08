@@ -82,10 +82,10 @@ void* memory_manager::alloc(const char* name,
 	               socket_id,
 	               size);
 
-	void* pointer = rte_zmalloc_socket(nullptr,
-	                                   size,
-	                                   RTE_CACHE_LINE_SIZE,
-	                                   socket_id);
+	void* pointer = rte_malloc_socket(nullptr,
+	                                  size,
+	                                  RTE_CACHE_LINE_SIZE,
+	                                  socket_id);
 	if (pointer == nullptr)
 	{
 		YANET_LOG_ERROR("error allocation memory (name: '%s', socket: %u, size: %lu)\n",

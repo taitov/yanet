@@ -397,6 +397,25 @@ void module::report(nlohmann::json& json)
 	json["neighbor"]["resolve"] = stats.resolve;
 }
 
+void module::update_before(const common::idp::update::request& request)
+{
+	(void)request;
+	///XXX
+}
+
+eResult module::update(const common::idp::update::request& request)
+{
+	(void)request;
+	///XXX
+	return eResult::success;
+}
+
+void module::update_after(const common::idp::update::request& request)
+{
+	(void)request;
+	///XXX
+}
+
 void module::main_thread()
 {
 	std::vector<dataplane::neighbor::key> keys;

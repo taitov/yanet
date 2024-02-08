@@ -32,6 +32,7 @@
 #include "common/result.h"
 #include "common/tsc_deltas.h"
 #include "dataplane.h"
+#include "debug_latch.h"
 #include "globalbase.h"
 #include "report.h"
 #include "sock_dev.h"
@@ -1243,6 +1244,90 @@ void cDataPlane::timestamp_thread()
 	}
 }
 
+void cDataPlane::globalbase_update_worker_base(const std::vector<std::tuple<tSocketId, dataplane::base::generation*>>& worker_base_nexts)
+{
+	std::lock_guard<std::mutex> guard(currentGlobalBaseId_mutex);
+	for (const auto& [socket_id, base_next] : worker_base_nexts)
+	{
+		base_next->globalBase = globalBases[socket_id][currentGlobalBaseId];
+	}
+}
+
+inline const std::optional<common::idp::updateGlobalBase::request>& get_request(const common::idp::update::request& request)
+{
+	const auto& [request_globalbase, request_acl] = request;
+	(void)request_acl;
+
+	return request_globalbase;
+}
+
+void cDataPlane::globalbase_update_before(const common::idp::update::request& request)
+{
+	const auto& request_globalbase = get_request(request);
+	if (!request_globalbase)
+	{
+		return;
+	}
+
+	nextGlobalBaseId_mutex.lock();
+}
+
+eResult cDataPlane::globalbase_update(const common::idp::update::request& request)
+{
+	auto result = eResult::success;
+
+	const auto& request_globalbase = get_request(request);
+	if (!request_globalbase)
+	{
+		return result;
+	}
+
+	for (auto& iter : globalBases)
+	{
+		auto* globalBaseNext = iter.second[currentGlobalBaseId ^ 1];
+		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_pre_update);
+		result = globalBaseNext->update(*request_globalbase);
+		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_post_update);
+		if (result != eResult::success)
+		{
+			/// XXX: ++errors["updateGlobalBase"];
+			break;
+		}
+	}
+
+	{
+		std::lock_guard<std::mutex> guard(currentGlobalBaseId_mutex);
+		currentGlobalBaseId ^= 1;
+	}
+
+	return eResult::success;
+}
+
+void cDataPlane::globalbase_update_after(const common::idp::update::request& request)
+{
+	const auto& request_globalbase = get_request(request);
+	if (!request_globalbase)
+	{
+		return;
+	}
+
+	for (auto& iter : globalBases)
+	{
+		auto* globalBaseNext = iter.second[currentGlobalBaseId ^ 1];
+		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_pre_update);
+		eResult result = globalBaseNext->update(*request_globalbase);
+		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_post_update);
+		if (result != eResult::success)
+		{
+			// Practically unreachable.
+			/// XXX: ++errors["updateGlobalBase"];
+			break;
+		}
+	}
+
+	nextGlobalBaseId_mutex.unlock();
+}
+
 void cDataPlane::start()
 {
 	threads.emplace_back([this]() {
@@ -1629,13 +1714,7 @@ void cDataPlane::switch_worker_base()
 	}
 
 	/// update base_next
-	{
-		std::lock_guard<std::mutex> guard(currentGlobalBaseId_mutex);
-		for (const auto& [socket_id, base_next] : base_nexts)
-		{
-			base_next->globalBase = globalBases[socket_id][currentGlobalBaseId];
-		}
-	}
+	globalbase_update_worker_base(base_nexts);
 	neighbor.update_worker_base(base_nexts);
 	acl_module.update_worker_base(base_nexts);
 

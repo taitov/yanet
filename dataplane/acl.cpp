@@ -26,7 +26,6 @@ eResult module::init(cDataPlane* dataplane)
 
 	/// initial allocate objects
 	acl_update({});
-	generations.switch_generation_without_gc();
 
 	return result;
 }
@@ -65,41 +64,45 @@ void module::limits(common::idp::limits::response& response)
 	}
 }
 
-eResult module::acl_update(const common::acl::idp::request& request)
+inline const std::optional<common::acl::idp::request>& get_request(const common::idp::update::request& request)
 {
-	const auto& [request_transport_table, request_total_table] = request;
+	const auto& [request_globalbase, request_acl] = request;
+	(void)request_globalbase;
 
-	eResult result = eResult::success;
-
-	{
-		auto lock = generations.next_lock_guard();
-		auto& generation = generations.next();
-
-		for (const auto socket_id : dataplane->get_socket_ids())
-		{
-			auto& base = generation.bases.find(socket_id)->second;
-
-			result = base.transport_table_updater.update(request_transport_table);
-			if (result != eResult::success)
-			{
-				return result;
-			}
-
-			result = base.total_table_updater.update(request_total_table);
-			if (result != eResult::success)
-			{
-				return result;
-			}
-		}
-	}
-
-	return result;
+	return request_acl;
 }
 
-void module::acl_flush()
+void module::update_before(const common::idp::update::request& request)
 {
+	const auto& request_acl = get_request(request);
+	if (!request_acl)
+	{
+		return;
+	}
+
 	generations.next_lock();
-	generations.switch_generation_without_gc();
+}
+
+eResult module::update(const common::idp::update::request& request)
+{
+	eResult result = eResult::success;
+
+	const auto& request_acl = get_request(request);
+	if (!request_acl)
+	{
+		return result;
+	}
+
+	return acl_update(*request_acl);
+}
+
+void module::update_after(const common::idp::update::request& request)
+{
+	const auto& request_acl = get_request(request);
+	if (!request_acl)
+	{
+		return;
+	}
 
 	auto& generation = generations.next();
 	for (const auto socket_id : dataplane->get_socket_ids())
@@ -111,4 +114,31 @@ void module::acl_flush()
 	}
 
 	generations.next_unlock();
+}
+
+eResult module::acl_update(const common::acl::idp::request& request_acl)
+{
+	eResult result = eResult::success;
+	const auto& [request_transport_table, request_total_table] = request_acl;
+
+	auto& generation = generations.next();
+	for (const auto socket_id : dataplane->get_socket_ids())
+	{
+		auto& base = generation.bases.find(socket_id)->second;
+
+		result = base.transport_table_updater.update(request_transport_table);
+		if (result != eResult::success)
+		{
+			return result;
+		}
+
+		result = base.total_table_updater.update(request_total_table);
+		if (result != eResult::success)
+		{
+			return result;
+		}
+	}
+
+	generations.switch_generation_without_gc();
+	return result;
 }

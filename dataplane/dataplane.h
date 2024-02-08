@@ -310,6 +310,11 @@ protected:
 	static int lcoreThread(void* args);
 	void timestamp_thread();
 
+	void globalbase_update_worker_base(const std::vector<std::tuple<tSocketId, dataplane::base::generation*>>& worker_base_nexts);
+	void globalbase_update_before(const common::idp::update::request& request);
+	eResult globalbase_update(const common::idp::update::request& request);
+	void globalbase_update_after(const common::idp::update::request& request);
+
 protected:
 	friend class cWorker;
 	friend class cReport;
@@ -332,6 +337,7 @@ protected:
 	std::map<tCoreId, cWorker*> workers;
 	std::map<tCoreId, worker_gc_t*> worker_gcs;
 
+	std::mutex nextGlobalBaseId_mutex;
 	std::mutex currentGlobalBaseId_mutex;
 	uint8_t currentGlobalBaseId;
 	std::map<tSocketId, dataplane::globalBase::atomic*> globalBaseAtomics;
@@ -380,7 +386,7 @@ public: ///< modules
 	cReport report;
 	std::unique_ptr<cControlPlane> controlPlane;
 	cBus bus;
-	dataplane::neighbor::module neighbor;
 	dataplane::memory_manager memory_manager;
+	dataplane::neighbor::module neighbor;
 	dataplane::acl::module acl_module;
 };

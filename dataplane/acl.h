@@ -43,8 +43,12 @@ public:
 	void report(nlohmann::json& json);
 	void limits(common::idp::limits::response& response);
 
-	eResult acl_update(const common::acl::idp::request& request);
-	void acl_flush();
+	void update_before(const common::idp::update::request& request);
+	eResult update(const common::idp::update::request& request);
+	void update_after(const common::idp::update::request& request);
+
+protected:
+	eResult acl_update(const common::acl::idp::request& request_acl);
 
 protected:
 	cDataPlane* dataplane;

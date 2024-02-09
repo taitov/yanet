@@ -178,7 +178,7 @@ eResult cControlPlane::init(const std::string& jsonFilePath)
 	else
 	{
 		common::idp::updateGlobalBase::request globalbase = {{common::idp::updateGlobalBase::requestType::clear, std::tuple<>()}};
-		dataPlane.update({globalbase, std::nullopt});
+		dataPlane.update({globalbase, std::nullopt, std::nullopt});
 	}
 	durations.add("init", start);
 	loadConfigStatus = true;
@@ -903,13 +903,15 @@ eResult cControlPlane::loadConfig(const std::string& rootFilePath,
 				YANET_LOG_INFO("updating globalbase (stage 5)\n");
 
 				addConfig(serial, converter.getBaseNext());
-				const auto result = dataPlane.update({std::move(globalbase), std::move(converter.get_acl())});
-				if (result != eResult::success)
-				{
-					// Since now the dataplane is locked for further changes
-					// and considered broken.
-					return result;
-				}
+				const auto result = dataPlane.update({std::move(globalbase), std::move(converter.get_acl()), std::nullopt});
+				/// XXX: @todo
+				(void)result;
+				// if (result != eResult::success)
+				// {
+				// 	// Since now the dataplane is locked for further changes
+				// 	// and considered broken.
+				// 	return result;
+				// }
 				start = durations.add("reload.dataplane", start);
 
 				YANET_LOG_INFO("globalbase updated (stage 6), serial %d\n", serial);

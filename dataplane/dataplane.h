@@ -142,6 +142,7 @@ public:
 	void run_on_worker_gc(const tSocketId socket_id, const std::function<bool()>& callback);
 
 	void switch_worker_base();
+	void wait_all_workers();
 
 	inline uint32_t get_current_time() const
 	{
@@ -312,7 +313,7 @@ protected:
 
 	void globalbase_update_worker_base(const std::vector<std::tuple<tSocketId, dataplane::base::generation*>>& worker_base_nexts);
 	void globalbase_update_before(const common::idp::update::request& request);
-	eResult globalbase_update(const common::idp::update::request& request);
+	void globalbase_update(const common::idp::update::request& request, common::idp::update::response& response);
 	void globalbase_update_after(const common::idp::update::request& request);
 
 protected:

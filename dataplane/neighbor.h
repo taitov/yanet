@@ -81,7 +81,7 @@ public:
 	void report(nlohmann::json& json);
 
 	void update_before(const common::idp::update::request& request);
-	eResult update(const common::idp::update::request& request);
+	void update(const common::idp::update::request& request, common::idp::update::response& response);
 	void update_after(const common::idp::update::request& request);
 
 protected:

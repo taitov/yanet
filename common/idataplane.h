@@ -30,8 +30,14 @@ public:
 public:
 	auto update(const common::idp::update::request& request) const
 	{
-		return get<common::idp::requestType::update, eResult>(request);
+		return get<common::idp::requestType::update, common::idp::update::response>(request);
 	}
+
+	/// XXX: @todo
+	//	auto update_globalbase(const common::idp::update::request& request) const
+	//	{
+	//		return get<common::idp::requestType::update, common::idp::update::response>(request);
+	//	}
 
 	eResult updateGlobalBaseBalancer(const common::idp::updateGlobalBaseBalancer::request& request) const
 	{

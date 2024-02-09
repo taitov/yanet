@@ -981,7 +981,12 @@ using request = memory_manager::memory_group;
 namespace update
 {
 using request = std::tuple<std::optional<updateGlobalBase::request>,
-                           std::optional<acl::idp::request>>;
+                           std::optional<acl::idp::request>,
+                           std::optional<neighbor::idp::request>>;
+
+using response = std::tuple<std::optional<updateGlobalBase::response>,
+                            std::optional<acl::idp::response>,
+                            std::optional<neighbor::idp::response>>;
 }
 
 //
@@ -1010,6 +1015,7 @@ using request = std::tuple<requestType,
 
 using response = std::variant<std::tuple<>,
                               eResult,
+                              update::response,
                               getGlobalBase::response,
                               getWorkerStats::response,
                               getSlowWorkerStats::response,

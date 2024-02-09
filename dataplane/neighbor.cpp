@@ -397,17 +397,45 @@ void module::report(nlohmann::json& json)
 	json["neighbor"]["resolve"] = stats.resolve;
 }
 
+inline const auto& get_request(const common::idp::update::request& request)
+{
+	const auto& [request_globalbase, request_acl, request_neighbor] = request;
+	(void)request_globalbase;
+	(void)request_acl;
+
+	return request_neighbor;
+}
+
+inline auto& get_response(common::idp::update::response& response)
+{
+	auto& [response_globalbase, response_acl, response_neighbor] = response;
+	(void)response_globalbase;
+	(void)response_acl;
+
+	return response_neighbor;
+}
+
 void module::update_before(const common::idp::update::request& request)
 {
 	(void)request;
 	///XXX
 }
 
-eResult module::update(const common::idp::update::request& request)
+void module::update(const common::idp::update::request& request,
+                    common::idp::update::response& response)
 {
-	(void)request;
-	///XXX
-	return eResult::success;
+	const auto& request_neighbor = get_request(request);
+	if (!request_neighbor)
+	{
+		return;
+	}
+
+	const auto& [type, variant] = *request_neighbor;
+	if (type == common::neighbor::idp::type::show)
+	{
+		auto& response_neighbor = get_response(response);
+		response_neighbor = common::neighbor::idp::show();
+	}
 }
 
 void module::update_after(const common::idp::update::request& request)

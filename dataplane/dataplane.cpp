@@ -1253,12 +1253,22 @@ void cDataPlane::globalbase_update_worker_base(const std::vector<std::tuple<tSoc
 	}
 }
 
-inline const std::optional<common::idp::updateGlobalBase::request>& get_request(const common::idp::update::request& request)
+inline const auto& get_request(const common::idp::update::request& request)
 {
-	const auto& [request_globalbase, request_acl] = request;
+	const auto& [request_globalbase, request_acl, request_neighbor] = request;
 	(void)request_acl;
+	(void)request_neighbor;
 
 	return request_globalbase;
+}
+
+inline auto& get_response(common::idp::update::response& response)
+{
+	auto& [response_globalbase, response_acl, response_neighbor] = response;
+	(void)response_acl;
+	(void)response_neighbor;
+
+	return response_globalbase;
 }
 
 void cDataPlane::globalbase_update_before(const common::idp::update::request& request)
@@ -1272,26 +1282,27 @@ void cDataPlane::globalbase_update_before(const common::idp::update::request& re
 	nextGlobalBaseId_mutex.lock();
 }
 
-eResult cDataPlane::globalbase_update(const common::idp::update::request& request)
+void cDataPlane::globalbase_update(const common::idp::update::request& request,
+                                   common::idp::update::response& response)
 {
-	auto result = eResult::success;
-
 	const auto& request_globalbase = get_request(request);
 	if (!request_globalbase)
 	{
-		return result;
+		return;
 	}
+
+	auto& response_globalbase = get_response(response);
 
 	for (auto& iter : globalBases)
 	{
 		auto* globalBaseNext = iter.second[currentGlobalBaseId ^ 1];
 		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_pre_update);
-		result = globalBaseNext->update(*request_globalbase);
+		response_globalbase = globalBaseNext->update(*request_globalbase);
 		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_post_update);
-		if (result != eResult::success)
+		if (response_globalbase != eResult::success)
 		{
 			/// XXX: ++errors["updateGlobalBase"];
-			break;
+			return;
 		}
 	}
 
@@ -1300,7 +1311,7 @@ eResult cDataPlane::globalbase_update(const common::idp::update::request& reques
 		currentGlobalBaseId ^= 1;
 	}
 
-	return eResult::success;
+	return;
 }
 
 void cDataPlane::globalbase_update_after(const common::idp::update::request& request)
@@ -1719,7 +1730,82 @@ void cDataPlane::switch_worker_base()
 	acl_module.update_worker_base(base_nexts);
 
 	/// switch
-	controlPlane->switchBase();
+	{
+		YADECAP_MEMORY_BARRIER_COMPILE;
+
+		for (auto& [core_id, worker] : workers)
+		{
+			(void)core_id;
+			worker->currentBaseId ^= 1;
+		}
+
+		for (auto& [core_id, worker] : worker_gcs)
+		{
+			(void)core_id;
+			worker->current_base_id ^= 1;
+		}
+
+		YADECAP_MEMORY_BARRIER_COMPILE;
+
+		wait_all_workers();
+
+		YADECAP_MEMORY_BARRIER_COMPILE;
+
+		for (auto& [core_id, worker] : workers)
+		{
+			(void)core_id;
+
+			auto& base = worker->bases[worker->currentBaseId];
+			auto& base_next = worker->bases[worker->currentBaseId ^ 1];
+
+			base_next = base;
+		}
+
+		for (auto& [core_id, worker] : worker_gcs)
+		{
+			(void)core_id;
+
+			auto& base = worker->bases[worker->current_base_id];
+			auto& base_next = worker->bases[worker->current_base_id ^ 1];
+
+			base_next = base;
+		}
+
+		YADECAP_MEMORY_BARRIER_COMPILE;
+	}
+}
+
+void cDataPlane::wait_all_workers()
+{
+	YADECAP_MEMORY_BARRIER_COMPILE;
+
+	for (const auto& [core_id, worker] : workers)
+	{
+		(void)core_id;
+
+		uint64_t startIteration = worker->iteration;
+		uint64_t nextIteration = startIteration;
+		while (nextIteration - startIteration <= (uint64_t)16)
+		{
+			YADECAP_MEMORY_BARRIER_COMPILE;
+			nextIteration = worker->iteration;
+		}
+	}
+
+	for (const auto& [core_id, worker] : worker_gcs)
+	{
+		(void)core_id;
+
+		uint64_t startIteration = worker->iteration;
+		uint64_t nextIteration = startIteration;
+		while (nextIteration - startIteration <= (uint64_t)16)
+		{
+			YADECAP_MEMORY_BARRIER_COMPILE;
+			nextIteration = worker->iteration;
+		}
+	}
+
+	YADECAP_MEMORY_BARRIER_COMPILE;
 }
 
 eResult cDataPlane::parseConfig(const std::string& configFilePath)

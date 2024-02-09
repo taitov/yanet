@@ -150,9 +150,9 @@ void cControlPlane::start()
 	mainThread();
 }
 
-eResult cControlPlane::update(const common::idp::update::request& request)
+common::idp::update::response cControlPlane::update(const common::idp::update::request& request)
 {
-	eResult result = eResult::success;
+	common::idp::update::response response;
 
 	/// lock
 	dataPlane->globalbase_update_before(request);
@@ -160,26 +160,9 @@ eResult cControlPlane::update(const common::idp::update::request& request)
 	dataPlane->acl_module.update_before(request);
 
 	/// update
-	result = dataPlane->globalbase_update(request);
-	if (result != eResult::success)
-	{
-		++errors["update_globalbase"];
-		return result;
-	}
-
-	result = dataPlane->neighbor.update(request);
-	if (result != eResult::success)
-	{
-		++errors["update_neighbor"];
-		return result;
-	}
-
-	result = dataPlane->acl_module.update(request);
-	if (result != eResult::success)
-	{
-		++errors["update_acl"];
-		return result;
-	}
+	dataPlane->globalbase_update(request, response);
+	dataPlane->neighbor.update(request, response);
+	dataPlane->acl_module.update(request, response);
 
 	/// switch
 	dataPlane->switch_worker_base();
@@ -189,7 +172,7 @@ eResult cControlPlane::update(const common::idp::update::request& request)
 	dataPlane->neighbor.update_after(request);
 	dataPlane->acl_module.update_after(request);
 
-	return result;
+	return response;
 }
 
 eResult cControlPlane::updateGlobalBaseBalancer(const common::idp::updateGlobalBaseBalancer::request& request)
@@ -229,7 +212,7 @@ eResult cControlPlane::updateGlobalBaseBalancer(const common::idp::updateGlobalB
 
 	YADECAP_MEMORY_BARRIER_COMPILE;
 
-	waitAllWorkers();
+	dataPlane->wait_all_workers();
 
 	YADECAP_MEMORY_BARRIER_COMPILE;
 
@@ -1292,84 +1275,6 @@ common::idp::nat64stateful_state::response cControlPlane::nat64stateful_state(co
 	}
 
 	return response;
-}
-
-void cControlPlane::switchBase()
-{
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	for (auto& iter : dataPlane->workers)
-	{
-		auto* worker = iter.second;
-
-		worker->currentBaseId ^= 1;
-	}
-
-	for (auto& iter : dataPlane->worker_gcs)
-	{
-		auto* worker = iter.second;
-
-		worker->current_base_id ^= 1;
-	}
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	waitAllWorkers();
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	for (auto& iter : dataPlane->workers)
-	{
-		auto* worker = iter.second;
-		auto& base = worker->bases[worker->currentBaseId];
-		auto& baseNext = worker->bases[worker->currentBaseId ^ 1];
-
-		baseNext = base;
-	}
-
-	for (auto& iter : dataPlane->worker_gcs)
-	{
-		auto* worker = iter.second;
-		auto& base = worker->bases[worker->current_base_id];
-		auto& baseNext = worker->bases[worker->current_base_id ^ 1];
-
-		baseNext = base;
-	}
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
-}
-
-void cControlPlane::waitAllWorkers()
-{
-	YADECAP_MEMORY_BARRIER_COMPILE;
-
-	for (const auto& [core_id, worker] : dataPlane->workers)
-	{
-		(void)core_id;
-
-		uint64_t startIteration = worker->iteration;
-		uint64_t nextIteration = startIteration;
-		while (nextIteration - startIteration <= (uint64_t)16)
-		{
-			YADECAP_MEMORY_BARRIER_COMPILE;
-			nextIteration = worker->iteration;
-		}
-	}
-
-	for (const auto& [core_id, worker] : dataPlane->worker_gcs)
-	{
-		(void)core_id;
-
-		uint64_t startIteration = worker->iteration;
-		uint64_t nextIteration = startIteration;
-		while (nextIteration - startIteration <= (uint64_t)16)
-		{
-			YADECAP_MEMORY_BARRIER_COMPILE;
-			nextIteration = worker->iteration;
-		}
-	}
-
-	YADECAP_MEMORY_BARRIER_COMPILE;
 }
 
 eResult cControlPlane::initMempool()

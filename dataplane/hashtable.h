@@ -230,7 +230,7 @@ public:
 	}
 
 	inline bool lookup(const TKey& key,
-	                   TValue*& value)
+	                   TValue*& value) const
 	{
 		lookup(&key, &value, 1);
 		return (value != nullptr);
@@ -1776,220 +1776,18 @@ public:
 	static_assert(valid_bit_offset < 32);
 
 public:
-	class updater
+	hashtable_mod_id32_dynamic(const uint32_t keys_size)
 	{
-	public:
-		updater() :
-		        hashtable(nullptr)
+		total_mask = keys_size - 1;
+
+		for (uint32_t i = 0;
+		     i < keys_size;
+		     i++)
 		{
+			pairs[i].value = 0;
 		}
-
-		void update_pointer(hashtable_t* hashtable,
-		                    const tSocketId socket_id,
-		                    const uint32_t total_size)
-		{
-			this->hashtable = hashtable;
-			this->socket_id = socket_id;
-			this->total_size = total_size;
-
-			hashtable->total_mask = total_size - 1;
-		}
-
-		hashtable_t* get_pointer()
-		{
-			return hashtable;
-		}
-
-		const hashtable_t* get_pointer() const
-		{
-			return hashtable;
-		}
-
-		template<typename update_key_t>
-		eResult update(const std::vector<std::tuple<update_key_t, uint32_t>>& keys)
-		{
-			eResult result = eResult::success;
-
-			keys_count = 0;
-			keys_in_chunks.fill(0);
-			longest_chain = 0;
-			insert_failed = 0;
-			rewrites = 0;
-
-			for (const auto& [key, value] : keys)
-			{
-				eResult insert_result;
-				if constexpr (std::is_same_v<update_key_t, key_t>)
-				{
-					insert_result = insert(key, value);
-				}
-				else
-				{
-					insert_result = insert(key_t::convert(key), value);
-				}
-
-				if (insert_result != eResult::success)
-				{
-					result = insert_result;
-				}
-			}
-
-			for (uint32_t chunk_i = 0;
-			     chunk_i < total_size / chunk_size;
-			     chunk_i++)
-			{
-				unsigned int count = 0;
-
-				for (uint32_t pair_i = 0;
-				     pair_i < chunk_size;
-				     pair_i++)
-				{
-					if (hashtable->is_valid(chunk_i * chunk_size + pair_i))
-					{
-						count++;
-					}
-				}
-
-				keys_in_chunks[count]++;
-			}
-
-			return result;
-		}
-
-		void clear()
-		{
-			for (uint32_t i = 0;
-			     i < total_size;
-			     i++)
-			{
-				hashtable->pairs[i].value = 0;
-			}
-		}
-
-		/// @todo: remove
-		template<typename list_T> ///< @todo: common::idp::limits::response
-		void limits(list_T& list,
-		            const std::string& name) const
-		{
-			list.emplace_back(name + ".keys",
-			                  socket_id,
-			                  keys_count,
-			                  total_size);
-			list.emplace_back(name + ".longest_collision",
-			                  socket_id,
-			                  longest_chain,
-			                  chunk_size);
-		}
-
-		template<typename list_T> ///< @todo: common::idp::limits::response
-		void limits(list_T& list) const
-		{
-			list.emplace_back(name + ".keys",
-			                  socket_id,
-			                  keys_count,
-			                  total_size);
-			list.emplace_back(name + ".longest_collision",
-			                  socket_id,
-			                  longest_chain,
-			                  chunk_size);
-		}
-
-		template<typename json_t> ///< @todo: nlohmann::json
-		void report(json_t& json) const
-		{
-			json["total_size"] = total_size;
-			json["keys_count"] = keys_count;
-			for (unsigned int i = 0;
-			     i < keys_in_chunks.size();
-			     i++)
-			{
-				json["keys_in_chunks"][i] = keys_in_chunks[i];
-			}
-			json["longest_chain"] = longest_chain;
-			json["insert_failed"] = insert_failed;
-			json["rewrites"] = rewrites;
-		}
-
-	protected:
-		eResult insert(const key_t& key,
-		               const uint32_t value)
-		{
-			const uint32_t hash = calculate_hash(key) & (total_size - 1);
-
-			for (unsigned int try_i = 0;
-			     try_i < chunk_size;
-			     try_i++)
-			{
-				const uint32_t index = (hash + try_i) % total_size;
-
-				if (!hashtable->is_valid(index))
-				{
-					memcpy(&hashtable->pairs[index].key, &key, sizeof(key_t));
-					hashtable->pairs[index].value = value;
-					hashtable->pairs[index].value |= 1u << shift_valid;
-
-					keys_count++;
-
-					uint64_t longest_chain = try_i + 1;
-					if (this->longest_chain < longest_chain)
-					{
-						this->longest_chain = longest_chain;
-					}
-
-					return eResult::success;
-				}
-				else if (hashtable->is_valid_and_equal(index, key))
-				{
-					hashtable->pairs[index].value = value;
-					hashtable->pairs[index].value |= 1u << shift_valid;
-
-					rewrites++;
-
-					return eResult::success;
-				}
-			}
-
-			insert_failed++;
-
-			return eResult::isFull;
-		}
-
-	public:
-		std::string name;
-		hashtable_t* hashtable;
-		tSocketId socket_id;
-		uint32_t total_size;
-		uint32_t keys_count;
-		std::array<uint32_t, chunk_size + 1> keys_in_chunks;
-		uint32_t longest_chain;
-		uint64_t insert_failed;
-		uint64_t rewrites;
-	};
-
-public:
-	static size_t calculate_sizeof(const uint64_t keys_count)
-	{
-		if (!keys_count)
-		{
-			YANET_LOG_ERROR("wrong keys_count: %lu\n", keys_count);
-			return 0;
-		}
-		else if (keys_count > 0xFFFFFFFFull)
-		{
-			YANET_LOG_ERROR("wrong keys_count: %lu\n", keys_count);
-			return 0;
-		}
-
-		if (__builtin_popcount(keys_count) != 1)
-		{
-			YANET_LOG_ERROR("wrong keys_count: %lu is non power of 2\n", keys_count);
-			return 0;
-		}
-
-		return sizeof(hashtable_t) + (size_t)keys_count * sizeof(pair);
 	}
 
-public:
 	/// value:
 	/// valid	invalid
 	/// = 0VV	= 1VV
@@ -2073,15 +1871,6 @@ protected:
 	template<typename, uint32_t, unsigned int>
 	friend class updater_hashtable_mod_id32;
 
-	uint32_t total_mask;
-
-	struct pair
-	{
-		key_t key;
-		uint32_t value;
-	} pairs[];
-
-protected:
 	inline bool is_valid(const uint32_t index) const
 	{
 		return (pairs[index].value >> shift_valid) & 1;
@@ -2096,6 +1885,15 @@ protected:
 	{
 		return is_valid(index) && is_equal(index, key);
 	}
+
+protected:
+	uint32_t total_mask;
+
+	struct pair
+	{
+		key_t key;
+		uint32_t value;
+	} pairs[];
 };
 
 class hashtable_mod_spinlock_stats ///< @todo: move to class::updater

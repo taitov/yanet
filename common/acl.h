@@ -300,11 +300,15 @@ using ranges_uint16_t = ranges_t<uint16_t>;
 namespace idp
 {
 
-using acl_transport_table = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
-using acl_total_table = std::vector<std::tuple<acl::total_key_t, tAclGroupId>>;
+using network_ipv4_source = std::vector<acl::tree_chunk_8bit_t>;
+using network_ipv4_destination = std::vector<acl::tree_chunk_8bit_t>;
+using transport_table = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
+using total_table = std::vector<std::tuple<acl::total_key_t, tAclGroupId>>;
 
-using request = std::tuple<acl_transport_table,
-                           acl_total_table>;
+using request = std::tuple<network_ipv4_source,
+                           network_ipv4_destination,
+                           transport_table,
+                           total_table>;
 
 using response = eResult;
 

@@ -932,8 +932,6 @@ common::idp::limits::response cControlPlane::limits()
 			             YANET_CONFIG_ROUTE_TUNNEL_LPM6_EXTENDED_SIZE);
 
 			globalBase->updater.acl.network_table.limits(response, "acl.network.ht");
-			globalBase->updater.acl.network_ipv4_source.limits(response, "acl.network.v4.source.lpm");
-			globalBase->updater.acl.network_ipv4_destination.limits(response, "acl.network.v4.destination.lpm");
 			globalBase->updater.acl.network_ipv6_source.limits(response, "acl.network.v6.source.lpm");
 
 			/// globalBase->acl.network_ipv6_destination_ht is not critical
@@ -960,6 +958,8 @@ common::idp::limits::response cControlPlane::limits()
 	}
 
 	dregress.limits(response);
+	///XXX	dataPlane->memory_manager.limits(response);
+	///XXX	dataPlane->neighbor.limits(response);
 	dataPlane->acl_module.limits(response);
 
 	return response;

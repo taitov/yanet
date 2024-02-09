@@ -35,9 +35,33 @@ public:
 	void report(nlohmann::json& json);
 	eResult memory_manager_update(const common::idp::memory_manager_update::request& request);
 
-	void* alloc(const char* name, const tSocketId socket_id, const uint64_t size);
+	void* alloc(
+	        const char* name,
+	        const tSocketId socket_id,
+	        const uint64_t size,
+	        const std::function<void(void*)>& destructor = [](void*) {});
+
 	void free(void* pointer);
 	void debug(tSocketId socket_id);
+
+	template<typename type,
+	         typename... args_t>
+	type* create(const char* name,
+	             const tSocketId socket_id,
+	             const uint64_t size,
+	             const args_t&... args)
+	{
+		void* pointer = alloc(name, socket_id, size, [](void* pointer) {
+			reinterpret_cast<type*>(pointer)->~type();
+		});
+
+		if (pointer == nullptr)
+		{
+			return nullptr;
+		}
+
+		return new (reinterpret_cast<type*>(pointer)) type(args...);
+	}
 
 protected:
 	cDataPlane* dataplane;

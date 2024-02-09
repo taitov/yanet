@@ -668,26 +668,8 @@ eResult cDataPlane::initGlobalBases()
 		}
 
 		{
-			auto* acl_network_ipv4_source = hugepage_create_dynamic<dataplane::globalBase::acl::network_ipv4_source>(socket_id, getConfigValue(eConfigType::acl_network_lpm4_chunks_size), globalbase->updater.acl.network_ipv4_source);
-			if (!acl_network_ipv4_source)
-			{
-				return nullptr;
-			}
-
-			auto* acl_network_ipv4_destination = hugepage_create_dynamic<dataplane::globalBase::acl::network_ipv4_destination>(socket_id, getConfigValue(eConfigType::acl_network_lpm4_chunks_size), globalbase->updater.acl.network_ipv4_destination);
-			if (!acl_network_ipv4_destination)
-			{
-				return nullptr;
-			}
-
 			auto* acl_network_ipv6_source = hugepage_create_dynamic<dataplane::globalBase::acl::network_ipv6_source>(socket_id, getConfigValue(eConfigType::acl_network_source_lpm6_chunks_size), globalbase->updater.acl.network_ipv6_source);
 			if (!acl_network_ipv6_source)
-			{
-				return nullptr;
-			}
-
-			auto* acl_network_ipv6_destination_ht = hugepage_create_dynamic<dataplane::globalBase::acl::network_ipv6_destination_ht>(socket_id, getConfigValue(eConfigType::acl_network_destination_ht_size), globalbase->updater.acl.network_ipv6_destination_ht);
-			if (!acl_network_ipv6_destination_ht)
 			{
 				return nullptr;
 			}
@@ -737,10 +719,7 @@ eResult cDataPlane::initGlobalBases()
 				return nullptr;
 			}
 
-			globalbase->acl.network.ipv4.source = acl_network_ipv4_source;
-			globalbase->acl.network.ipv4.destination = acl_network_ipv4_destination;
 			globalbase->acl.network.ipv6.source = acl_network_ipv6_source;
-			globalbase->acl.network.ipv6.destination_ht = acl_network_ipv6_destination_ht;
 			globalbase->acl.network.ipv6.destination = acl_network_ipv6_destination;
 			globalbase->acl.network_table = acl_network_table;
 			globalbase->acl.transport_layers_mask = acl_transport_layers_size - 1;

@@ -8,20 +8,28 @@
 #include "common/generation.h"
 #include "common/idp.h"
 
+#include "lpm.h"
 #include "type.h"
 #include "updater.h"
 
 namespace dataplane::acl
 {
 
+using network_ipv4_source = dataplane::updater_lpm4_24bit_8bit_id32;
+using network_ipv4_destination = dataplane::updater_lpm4_24bit_8bit_id32;
 using transport_table = dataplane::updater_hashtable_mod_id32<common::acl::transport_key_t, 16>;
 using total_table = dataplane::updater_hashtable_mod_id32<common::acl::total_key_t, 16>;
 
 class base
 {
 public:
-	acl::transport_table transport_table_updater;
-	acl::total_table total_table_updater;
+	base(dataplane::memory_manager* memory_manager, const tSocketId socket_id);
+
+public:
+	acl::network_ipv4_source network_ipv4_source;
+	acl::network_ipv4_destination network_ipv4_destination;
+	acl::transport_table transport_table;
+	acl::total_table total_table;
 };
 
 class generation

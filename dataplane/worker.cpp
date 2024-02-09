@@ -1423,13 +1423,13 @@ inline void cWorker::acl_ingress_handle4()
 		key_acl.ipv4_destinations[mbuf_i].address = ipv4Header->dst_addr;
 	}
 
-	acl.network.ipv4.source->lookup(key_acl.ipv4_sources,
-	                                value_acl.ipv4_sources,
-	                                acl_ingress_stack4.mbufsCount);
-
-	acl.network.ipv4.destination->lookup(key_acl.ipv4_destinations,
-	                                     value_acl.ipv4_destinations,
+	base.acl_network_ipv4_source->lookup(key_acl.ipv4_sources,
+	                                     value_acl.ipv4_sources,
 	                                     acl_ingress_stack4.mbufsCount);
+
+	base.acl_network_ipv4_destination->lookup(key_acl.ipv4_destinations,
+	                                          value_acl.ipv4_destinations,
+	                                          acl_ingress_stack4.mbufsCount);
 
 	acl.network_table->lookup(value_acl.ipv4_sources,
 	                          value_acl.ipv4_destinations,
@@ -1612,10 +1612,11 @@ inline void cWorker::acl_ingress_handle6()
 	                                acl_ingress_stack6.mbufsCount);
 
 	{
-		uint32_t mask = acl.network.ipv6.destination_ht->lookup(hashes,
-		                                                        key_acl.ipv6_destinations,
-		                                                        value_acl.ipv6_destinations,
-		                                                        acl_ingress_stack6.mbufsCount);
+		//		uint32_t mask = acl.network.ipv6.destination_ht->lookup(hashes,
+		//		                                                        key_acl.ipv6_destinations,
+		//		                                                        value_acl.ipv6_destinations,
+		//		                                                        acl_ingress_stack6.mbufsCount);
+		uint32_t mask = 0;
 		acl.network.ipv6.destination->lookup(mask,
 		                                     key_acl.ipv6_destinations,
 		                                     value_acl.ipv6_destinations,
@@ -5134,13 +5135,13 @@ inline void cWorker::acl_egress_handle4()
 		key_acl.ipv4_destinations[mbuf_i].address = ipv4Header->dst_addr;
 	}
 
-	acl.network.ipv4.source->lookup(key_acl.ipv4_sources,
-	                                value_acl.ipv4_sources,
-	                                acl_egress_stack4.mbufsCount);
-
-	acl.network.ipv4.destination->lookup(key_acl.ipv4_destinations,
-	                                     value_acl.ipv4_destinations,
+	base.acl_network_ipv4_source->lookup(key_acl.ipv4_sources,
+	                                     value_acl.ipv4_sources,
 	                                     acl_egress_stack4.mbufsCount);
+
+	base.acl_network_ipv4_destination->lookup(key_acl.ipv4_destinations,
+	                                          value_acl.ipv4_destinations,
+	                                          acl_egress_stack4.mbufsCount);
 
 	acl.network_table->lookup(value_acl.ipv4_sources,
 	                          value_acl.ipv4_destinations,

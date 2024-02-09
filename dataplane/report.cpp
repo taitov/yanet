@@ -688,10 +688,7 @@ nlohmann::json cReport::convertGlobalBase(const dataplane::globalBase::generatio
 	}
 
 	globalBase->updater.acl.network_table.report(json["acl"]["network_table"]);
-	globalBase->updater.acl.network_ipv4_source.report(json["acl"]["network"]["ipv4"]["source"]);
-	globalBase->updater.acl.network_ipv4_destination.report(json["acl"]["network"]["ipv4"]["destination"]);
 	globalBase->updater.acl.network_ipv6_source.report(json["acl"]["network"]["ipv6"]["source"]);
-	globalBase->updater.acl.network_ipv6_destination_ht.report(json["acl"]["network"]["ipv6"]["destination_ht"]);
 	globalBase->updater.acl.network_ipv6_destination.report(json["acl"]["network"]["ipv6"]["destination"]);
 
 	json["serial"] = globalBase->serial;

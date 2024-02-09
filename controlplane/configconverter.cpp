@@ -1885,8 +1885,6 @@ void config_converter_t::buildAcl()
 		throw std::runtime_error("support multithread here");
 	}
 
-	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_ipv4_source, std::move(result.acl_network_ipv4_source));
-	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_ipv4_destination, std::move(result.acl_network_ipv4_destination));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_ipv6_source, std::move(result.acl_network_ipv6_source));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_ipv6_destination_ht, std::move(result.acl_network_ipv6_destination_ht));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_ipv6_destination, std::move(result.acl_network_ipv6_destination));
@@ -1894,7 +1892,9 @@ void config_converter_t::buildAcl()
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_flags, std::move(result.acl_network_flags));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_transport_layers, std::move(result.acl_transport_layers));
 
-	acl_request = {std::move(result.acl_transport_tables[0]),
+	acl_request = {std::move(result.acl_network_ipv4_source),
+	               std::move(result.acl_network_ipv4_destination),
+	               std::move(result.acl_transport_tables[0]),
 	               std::move(result.acl_total_table)};
 
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_values, std::move(result.acl_values));

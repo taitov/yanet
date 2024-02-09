@@ -69,7 +69,7 @@ public:
 	std::map<tAclGroupId, std::set<unsigned int>> group_id_filter_ids;
 	std::vector<std::vector<tAclGroupId>> transport_table_filter_id_group_ids;
 
-	common::acl::idp::acl_transport_table acl_transport_table;
+	common::acl::idp::transport_table acl_transport_table;
 
 	std::optional<std::exception_ptr> exception;
 };

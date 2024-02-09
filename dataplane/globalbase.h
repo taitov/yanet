@@ -61,10 +61,7 @@ struct transport_layer_t
 };
 
 /// @todo: move to config
-using network_ipv4_source = lpm4_24bit_8bit_id32_dynamic;
-using network_ipv4_destination = lpm4_24bit_8bit_id32_dynamic;
 using network_ipv6_source = YANET_CONFIG_ACL_NETWORK_LPM6_TYPE;
-using network_ipv6_destination_ht = hashtable_mod_id32_dynamic<ipv6_address_t, 1>;
 using network_ipv6_destination = YANET_CONFIG_ACL_NETWORK_LPM6_TYPE;
 using network_table = dynamic_table<uint32_t>;
 }
@@ -157,8 +154,6 @@ protected:
 	eResult route_tunnel_weight_update(const common::idp::updateGlobalBase::route_tunnel_weight_update::request& request);
 	eResult route_tunnel_value_update(const common::idp::updateGlobalBase::route_tunnel_value_update::request& request);
 	eResult update_early_decap_flags(const common::idp::updateGlobalBase::update_early_decap_flags::request& request);
-	eResult acl_network_ipv4_source(const common::idp::updateGlobalBase::acl_network_ipv4_source::request& request);
-	eResult acl_network_ipv4_destination(const common::idp::updateGlobalBase::acl_network_ipv4_destination::request& request);
 	eResult acl_network_ipv6_source(const common::idp::updateGlobalBase::acl_network_ipv6_source::request& request);
 	eResult acl_network_ipv6_destination_ht(const common::idp::updateGlobalBase::acl_network_ipv6_destination_ht::request& request);
 	eResult acl_network_ipv6_destination(const common::idp::updateGlobalBase::acl_network_ipv6_destination::request& request);
@@ -189,10 +184,7 @@ public: ///< @todo
 	{
 		struct
 		{
-			acl::network_ipv4_source::updater network_ipv4_source;
-			acl::network_ipv4_destination::updater network_ipv4_destination;
 			acl::network_ipv6_source::updater network_ipv6_source;
-			acl::network_ipv6_destination_ht::updater network_ipv6_destination_ht;
 			acl::network_ipv6_destination::updater network_ipv6_destination;
 			acl::network_table::updater network_table;
 		} acl;
@@ -251,14 +243,7 @@ public: ///< @todo
 		{
 			struct
 			{
-				acl::network_ipv4_source* source;
-				acl::network_ipv4_destination* destination;
-			} ipv4;
-
-			struct
-			{
 				acl::network_ipv6_source* source;
-				acl::network_ipv6_destination_ht* destination_ht;
 				acl::network_ipv6_destination* destination;
 			} ipv6;
 		} network;

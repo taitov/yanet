@@ -114,21 +114,232 @@ public:
 	uint64_t object_size;
 };
 
-class updater_lpm4_24bit_8bit_id32 : public updater<lpm4_24bit_8bit_id32_dynamic>
+class updater_lpm4_24bit_8bit_id32
 {
 public:
+	using object_type = lpm4_24bit_8bit_id32_dynamic;
+
 	updater_lpm4_24bit_8bit_id32(const char* name,
 	                             dataplane::memory_manager* memory_manager,
 	                             const tSocketId socket_id) :
-	        updater<lpm4_24bit_8bit_id32_dynamic>::updater(name, memory_manager, socket_id)
+	        name(name),
+	        memory_manager(memory_manager),
+	        socket_id(socket_id),
+	        extended_chunks_size(1),
+	        extended_chunks_count(0),
+	        pointer(nullptr)
 	{
+	}
+
+	static uint64_t calculate_sizeof(const uint64_t extended_chunks_size)
+	{
+		if (!extended_chunks_size)
+		{
+			YANET_LOG_ERROR("wrong extended_chunks_size: %lu\n", extended_chunks_size);
+			return 0;
+		}
+
+		return sizeof(object_type) + extended_chunks_size * sizeof(object_type::chunk_step2_t);
 	}
 
 	eResult update(const std::vector<common::acl::tree_chunk_8bit_t>& values)
 	{
-		(void)values;
-		return eResult::dataplaneIsBroken;
+		extended_chunks_size = std::max((uint64_t)8, values.size() / 16);
+
+		for (;;)
+		{
+			pointer = memory_manager->create<object_type>(name.data(),
+			                                              socket_id,
+			                                              calculate_sizeof(extended_chunks_size));
+			if (pointer == nullptr)
+			{
+				return eResult::errorAllocatingMemory;
+			}
+
+			eResult result = fill(values);
+			if (result != eResult::success)
+			{
+				/// try again
+
+				extended_chunks_size <<= 1;
+				continue;
+			}
+
+			break;
+		}
+
+		return eResult::success;
 	}
+
+	void clear()
+	{
+		if (pointer)
+		{
+			memory_manager->free(pointer);
+			pointer = nullptr;
+		}
+	}
+
+	void limits(limits::response& limits) const
+	{
+		limits.emplace_back(name + ".extended_chunks",
+		                    socket_id,
+		                    extended_chunks_count,
+		                    extended_chunks_size);
+	}
+
+	void report(nlohmann::json& report) const
+	{
+		report["extended_chunks_count"] = extended_chunks_count;
+	}
+
+protected:
+	inline unsigned int allocate_extended_chunk()
+	{
+		if (extended_chunks_count >= extended_chunks_size)
+		{
+			return 0;
+		}
+
+		unsigned int new_chunk_id = extended_chunks_count;
+		extended_chunks_count++;
+
+		return new_chunk_id;
+	}
+
+	eResult fill(const std::vector<common::acl::tree_chunk_8bit_t>& values)
+	{
+		extended_chunks_count = 1;
+		remap_chunks.resize(0);
+		remap_chunks.resize(values.size(), 0);
+
+		if (values.empty())
+		{
+			return eResult::success;
+		}
+
+		return update_root_chunk<0>(values, 0, 0);
+	}
+
+	template<unsigned int bits_offset>
+	eResult update_root_chunk(const std::vector<common::acl::tree_chunk_8bit_t>& from_chunks,
+	                          const unsigned int from_chunk_id,
+	                          const unsigned int root_chunk_values_offset)
+	{
+		eResult result = eResult::success;
+
+		const auto& from_chunk = from_chunks[from_chunk_id];
+		for (uint32_t i = 0;
+		     i < (1u << 8);
+		     i++)
+		{
+			const unsigned int root_chunk_values_i = root_chunk_values_offset + (i << (object_type::bits_step1 - bits_offset - 8));
+			const auto& from_chunk_value = from_chunk.values[i];
+
+			if (from_chunk_value.is_chunk_id())
+			{
+				if constexpr (bits_offset < object_type::bits_step1 - object_type::bits_step2)
+				{
+					result = update_root_chunk<bits_offset + 8>(from_chunks,
+					                                            from_chunk_value.get_chunk_id(),
+					                                            root_chunk_values_i);
+					if (result != eResult::success)
+					{
+						return result;
+					}
+				}
+				else if constexpr (bits_offset < object_type::bits_step1)
+				{
+					auto& root_chunk_value = pointer->root_chunk.values[root_chunk_values_i];
+
+					auto& extended_chunk_id = remap_chunks[from_chunk_value.get_chunk_id()];
+					if (!extended_chunk_id)
+					{
+						extended_chunk_id = allocate_extended_chunk();
+						if (!extended_chunk_id)
+						{
+							YANET_LOG_ERROR("lpm is full\n");
+							return eResult::isFull;
+						}
+
+						result = update_extended_chunk(from_chunks,
+						                               from_chunk_value.get_chunk_id(),
+						                               extended_chunk_id);
+						if (result != eResult::success)
+						{
+							return result;
+						}
+					}
+
+					root_chunk_value.id = extended_chunk_id ^ 0x80000000u;
+				}
+				else
+				{
+					YANET_LOG_ERROR("tree broken\n");
+					return eResult::invalidArguments;
+				}
+			}
+			else
+			{
+				if constexpr (bits_offset < object_type::bits_step1)
+				{
+					for (uint32_t j = 0;
+					     j < (1u << (object_type::bits_step1 - bits_offset - 8));
+					     j++)
+					{
+						pointer->root_chunk.values[root_chunk_values_i + j].id = from_chunk_value.get_group_id();
+					}
+				}
+				else
+				{
+					YANET_LOG_ERROR("tree broken\n");
+					return eResult::invalidArguments;
+				}
+			}
+		}
+
+		return result;
+	}
+
+	eResult update_extended_chunk(const std::vector<common::acl::tree_chunk_8bit_t>& from_chunks,
+	                              const unsigned int from_chunk_id,
+	                              const unsigned int extended_chunk_id)
+	{
+		const auto& from_chunk = from_chunks[from_chunk_id];
+		auto& extended_chunk = pointer->extended_chunks[extended_chunk_id];
+
+		for (uint32_t i = 0;
+		     i < (1u << 8);
+		     i++)
+		{
+			const auto& from_chunk_value = from_chunk.values[i];
+			auto& extended_chunk_value = extended_chunk.values[i];
+
+			if (from_chunk_value.is_chunk_id())
+			{
+				YANET_LOG_ERROR("is_chunk_id\n");
+				return eResult::invalidArguments;
+			}
+			else
+			{
+				extended_chunk_value.id = from_chunk_value.get_group_id();
+			}
+		}
+
+		return eResult::success;
+	}
+
+protected:
+	std::string name;
+	dataplane::memory_manager* memory_manager;
+	tSocketId socket_id;
+
+	uint32_t extended_chunks_size;
+	unsigned int extended_chunks_count;
+	std::vector<unsigned int> remap_chunks;
+
+public:
+	object_type* pointer;
 };
 
 template<typename key_t,

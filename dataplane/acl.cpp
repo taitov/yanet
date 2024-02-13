@@ -142,8 +142,8 @@ void module::update_after(const common::idp::update::request& request)
 	{
 		auto& base = generation.bases.find(socket_id)->second;
 
-		base.network_ipv4_source.free();
-		base.network_ipv4_destination.free();
+		base.network_ipv4_source.clear();
+		base.network_ipv4_destination.clear();
 		base.transport_table.clear();
 		base.total_table.clear();
 	}

@@ -155,7 +155,6 @@ protected:
 	eResult route_tunnel_value_update(const common::idp::updateGlobalBase::route_tunnel_value_update::request& request);
 	eResult update_early_decap_flags(const common::idp::updateGlobalBase::update_early_decap_flags::request& request);
 	eResult acl_network_ipv6_source(const common::idp::updateGlobalBase::acl_network_ipv6_source::request& request);
-	eResult acl_network_ipv6_destination_ht(const common::idp::updateGlobalBase::acl_network_ipv6_destination_ht::request& request);
 	eResult acl_network_ipv6_destination(const common::idp::updateGlobalBase::acl_network_ipv6_destination::request& request);
 	eResult acl_network_table(const common::idp::updateGlobalBase::acl_network_table::request& request);
 	eResult acl_network_flags(const common::idp::updateGlobalBase::acl_network_flags::request& request);

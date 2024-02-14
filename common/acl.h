@@ -302,11 +302,13 @@ namespace idp
 
 using network_ipv4_source = std::vector<acl::tree_chunk_8bit_t>;
 using network_ipv4_destination = std::vector<acl::tree_chunk_8bit_t>;
+using network_ipv6_destination_ht = std::vector<std::tuple<ipv6_address_t, tAclGroupId>>;
 using transport_table = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
 using total_table = std::vector<std::tuple<acl::total_key_t, tAclGroupId>>;
 
 using request = std::tuple<network_ipv4_source,
                            network_ipv4_destination,
+                           network_ipv6_destination_ht,
                            transport_table,
                            total_table>;
 

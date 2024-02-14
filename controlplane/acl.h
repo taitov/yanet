@@ -20,7 +20,7 @@ struct result_t
 	common::acl::idp::network_ipv4_source acl_network_ipv4_source;
 	common::acl::idp::network_ipv4_destination acl_network_ipv4_destination;
 	common::idp::updateGlobalBase::acl_network_ipv6_source::request acl_network_ipv6_source;
-	common::idp::updateGlobalBase::acl_network_ipv6_destination_ht::request acl_network_ipv6_destination_ht;
+	common::acl::idp::network_ipv6_destination_ht acl_network_ipv6_destination_ht;
 	common::idp::updateGlobalBase::acl_network_ipv6_destination::request acl_network_ipv6_destination;
 	common::idp::updateGlobalBase::acl_network_table::request acl_network_table;
 	common::idp::updateGlobalBase::acl_network_flags::request acl_network_flags;

@@ -145,10 +145,6 @@ eResult generation::update(const common::idp::updateGlobalBase::request& request
 		{
 			result = acl_network_ipv6_source(std::get<common::idp::updateGlobalBase::acl_network_ipv6_source::request>(data));
 		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_network_ipv6_destination_ht)
-		{
-			result = acl_network_ipv6_destination_ht(std::get<common::idp::updateGlobalBase::acl_network_ipv6_destination_ht::request>(data));
-		}
 		else if (type == common::idp::updateGlobalBase::requestType::acl_network_ipv6_destination)
 		{
 			result = acl_network_ipv6_destination(std::get<common::idp::updateGlobalBase::acl_network_ipv6_destination::request>(data));
@@ -1850,20 +1846,6 @@ eResult generation::acl_network_ipv6_source(const common::idp::updateGlobalBase:
 	}
 
 	return result;
-}
-
-eResult generation::acl_network_ipv6_destination_ht(const common::idp::updateGlobalBase::acl_network_ipv6_destination_ht::request& request)
-{
-	/// XXX
-	(void)request;
-
-	//	auto result = updater.acl.network_ipv6_destination_ht.update(request);
-	//	if (result != eResult::success)
-	//	{
-	//		/// dont panic. this is fine
-	//	}
-
-	return eResult::success;
 }
 
 eResult generation::acl_network_ipv6_destination(const common::idp::updateGlobalBase::acl_network_ipv6_destination::request& request)

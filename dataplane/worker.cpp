@@ -1612,11 +1612,10 @@ inline void cWorker::acl_ingress_handle6()
 	                                acl_ingress_stack6.mbufsCount);
 
 	{
-		//		uint32_t mask = acl.network.ipv6.destination_ht->lookup(hashes,
-		//		                                                        key_acl.ipv6_destinations,
-		//		                                                        value_acl.ipv6_destinations,
-		//		                                                        acl_ingress_stack6.mbufsCount);
-		uint32_t mask = 0;
+		uint32_t mask = base.acl_network_ipv6_destination_ht->lookup(hashes,
+		                                                             key_acl.ipv6_destinations,
+		                                                             value_acl.ipv6_destinations,
+		                                                             acl_ingress_stack6.mbufsCount);
 		acl.network.ipv6.destination->lookup(mask,
 		                                     key_acl.ipv6_destinations,
 		                                     value_acl.ipv6_destinations,

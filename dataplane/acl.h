@@ -17,6 +17,7 @@ namespace dataplane::acl
 
 using network_ipv4_source = dataplane::updater_lpm4_24bit_8bit_id32;
 using network_ipv4_destination = dataplane::updater_lpm4_24bit_8bit_id32;
+using network_ipv6_destination_ht = dataplane::updater_hashtable_mod_id32<ipv6_address_t, 1>;
 using transport_table = dataplane::updater_hashtable_mod_id32<common::acl::transport_key_t, 16>;
 using total_table = dataplane::updater_hashtable_mod_id32<common::acl::total_key_t, 16>;
 
@@ -28,6 +29,7 @@ public:
 public:
 	acl::network_ipv4_source network_ipv4_source;
 	acl::network_ipv4_destination network_ipv4_destination;
+	acl::network_ipv6_destination_ht network_ipv6_destination_ht;
 	acl::transport_table transport_table;
 	acl::total_table total_table;
 };

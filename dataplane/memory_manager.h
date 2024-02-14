@@ -41,9 +41,6 @@ public:
 	        const uint64_t size,
 	        const std::function<void(void*)>& destructor = [](void*) {});
 
-	void free(void* pointer);
-	void debug(tSocketId socket_id);
-
 	template<typename type,
 	         typename... args_t>
 	type* create(const char* name,
@@ -62,6 +59,9 @@ public:
 
 		return new (reinterpret_cast<type*>(pointer)) type(args...);
 	}
+
+	void destroy(void* pointer);
+	void debug(tSocketId socket_id);
 
 protected:
 	cDataPlane* dataplane;

@@ -62,11 +62,10 @@ eResult memory_manager::memory_manager_update(const common::idp::memory_manager_
 	return eResult::success;
 }
 
-void* memory_manager::alloc(
-        const char* name,
-        const tSocketId socket_id,
-        uint64_t size,
-        const std::function<void(void*)>& destructor)
+void* memory_manager::alloc(const char* name,
+                            const tSocketId socket_id,
+                            uint64_t size,
+                            const std::function<void(void*)>& destructor)
 {
 	if (!size)
 	{
@@ -109,7 +108,7 @@ void* memory_manager::alloc(
 	return pointer;
 }
 
-void memory_manager::free(void* pointer)
+void memory_manager::destroy(void* pointer)
 {
 	std::lock_guard<std::mutex> guard(pointers_mutex);
 

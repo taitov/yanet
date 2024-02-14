@@ -15,6 +15,7 @@
 #include "acl.h"
 #include "balancer.h"
 #include "config.h"
+#include "limit.h"
 #include "memory_manager.h"
 #include "neighbor.h"
 #include "result.h"
@@ -886,12 +887,7 @@ using request = std::tuple<std::string, ///< interface_name
 
 namespace limits
 {
-using limit = std::tuple<std::string, ///< name
-                         std::optional<tSocketId>,
-                         uint64_t, ///< current
-                         uint64_t>; ///< maximum
-
-using response = std::vector<limit>;
+using response = common::limit::limits;
 }
 
 namespace samples

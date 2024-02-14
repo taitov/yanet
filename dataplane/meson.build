@@ -17,7 +17,6 @@ sources = files('acl.cpp',
                 'report.cpp',
                 'sharedmemory.cpp',
                 'sock_dev.cpp',
-                'updater.cpp',
                 'worker.cpp',
                 'worker_gc.cpp')
 

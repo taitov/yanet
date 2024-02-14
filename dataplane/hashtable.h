@@ -1779,6 +1779,7 @@ public:
 	struct stats_t
 	{
 		uint32_t pairs_count;
+		uint32_t pairs_size;
 		std::array<uint32_t, chunk_size + 1> pairs_in_chunks;
 		uint32_t longest_chain;
 		uint64_t insert_failed;
@@ -1804,8 +1805,7 @@ public:
 
 public:
 	hashtable_mod_id32_dynamic(const uint32_t pairs_size) :
-	        total_mask(pairs_size - 1),
-	        pairs_size(pairs_size)
+	        total_mask(pairs_size - 1)
 	{
 		for (uint32_t i = 0;
 		     i < pairs_size;
@@ -1914,7 +1914,7 @@ public:
 		}
 
 		for (uint32_t chunk_i = 0;
-		     chunk_i < pairs_size / chunk_size;
+		     chunk_i < stats.pairs_size / chunk_size;
 		     chunk_i++)
 		{
 			unsigned int count = 0;
@@ -1997,7 +1997,6 @@ protected:
 
 protected:
 	uint32_t total_mask;
-	uint32_t pairs_size;
 
 	struct pair
 	{

@@ -431,6 +431,8 @@ void module::update(const common::idp::update::request& request,
 	}
 
 	const auto& [type, variant] = *request_neighbor;
+	(void)variant; ///< XXX
+
 	if (type == common::neighbor::idp::type::show)
 	{
 		auto& response_neighbor = get_response(response);

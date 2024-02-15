@@ -5,6 +5,7 @@
 #include <variant>
 #include <vector>
 
+#include "result.h"
 #include "type.h"
 
 namespace common::neighbor
@@ -62,7 +63,8 @@ using request = std::tuple<type,
                                         remove,
                                         update_interfaces>>;
 
-using response = std::variant<show,
+using response = std::variant<eResult,
+                              show,
                               stats>;
 
 }

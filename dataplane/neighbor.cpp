@@ -140,8 +140,7 @@ static void netlink_neighbor_monitor(const std::function<void(const std::string&
 	close(nl_socket);
 }
 
-module::module() :
-        dataplane(nullptr)
+module::module() :dataplane(nullptr)
 {
 	memset(&stats, 0, sizeof(stats));
 }
@@ -180,9 +179,9 @@ void module::update_worker_base(const std::vector<std::tuple<tSocketId, dataplan
 	}
 }
 
-common::idp::neighbor_show::response module::neighbor_show() const
+common::neighbor::idp::show module::neighbor_show() const
 {
-	common::idp::neighbor_show::response response;
+	common::neighbor::idp::show response;
 
 	generation_interface.current_lock();
 	auto interface_id_to_name = generation_interface.current().interface_id_to_name;
@@ -226,7 +225,7 @@ common::idp::neighbor_show::response module::neighbor_show() const
 	return response;
 }
 
-eResult module::neighbor_insert(const common::idp::neighbor_insert::request& request)
+eResult module::neighbor_insert(const common::neighbor::idp::insert& request)
 {
 	const auto& [route_name, interface_name, ip_address, mac_address] = request;
 	(void)route_name; ///< @todo
@@ -287,7 +286,7 @@ eResult module::neighbor_insert(const common::idp::neighbor_insert::request& req
 	return response;
 }
 
-eResult module::neighbor_remove(const common::idp::neighbor_remove::request& request)
+eResult module::neighbor_remove(const common::neighbor::idp::remove& request)
 {
 	const auto& [route_name, interface_name, ip_address] = request;
 	(void)route_name; ///< @todo
@@ -364,7 +363,7 @@ eResult module::neighbor_flush()
 	return eResult::success;
 }
 
-eResult module::neighbor_update_interfaces(const common::idp::neighbor_update_interfaces::request& request)
+eResult module::neighbor_update_interfaces(const common::neighbor::idp::update_interfaces& request)
 {
 	generation_interface.next_lock();
 
@@ -382,7 +381,7 @@ eResult module::neighbor_update_interfaces(const common::idp::neighbor_update_in
 	return eResult::success;
 }
 
-common::idp::neighbor_stats::response module::neighbor_stats() const
+common::neighbor::idp::stats module::neighbor_stats() const
 {
 	return stats;
 }
@@ -418,7 +417,7 @@ inline auto& get_response(common::idp::update::response& response)
 void module::update_before(const common::idp::update::request& request)
 {
 	(void)request;
-	///XXX
+	/// XXX
 }
 
 void module::update(const common::idp::update::request& request,
@@ -431,19 +430,46 @@ void module::update(const common::idp::update::request& request,
 	}
 
 	const auto& [type, variant] = *request_neighbor;
-	(void)variant; ///< XXX
 
+	auto& response_neighbor = get_response(response);
 	if (type == common::neighbor::idp::type::show)
 	{
-		auto& response_neighbor = get_response(response);
-		response_neighbor = common::neighbor::idp::show();
+		response_neighbor = neighbor_show();
+	}
+	else if (type == common::neighbor::idp::type::insert)
+	{
+		response_neighbor = neighbor_insert(std::get<common::neighbor::idp::insert>(variant));
+	}
+	else if (type == common::neighbor::idp::type::remove)
+	{
+		response_neighbor = neighbor_remove(std::get<common::neighbor::idp::remove>(variant));
+	}
+	else if (type == common::neighbor::idp::type::clear)
+	{
+		response_neighbor = neighbor_clear();
+	}
+	else if (type == common::neighbor::idp::type::flush)
+	{
+		response_neighbor = neighbor_flush();
+	}
+	else if (type == common::neighbor::idp::type::update_interfaces)
+	{
+		response_neighbor = neighbor_update_interfaces(std::get<common::neighbor::idp::update_interfaces>(variant));
+	}
+	else if (type == common::neighbor::idp::type::stats)
+	{
+		response_neighbor = neighbor_stats();
+	}
+	else
+	{
+		response_neighbor = eResult::invalidType;
 	}
 }
 
 void module::update_after(const common::idp::update::request& request)
 {
 	(void)request;
-	///XXX
+	/// XXX
 }
 
 void module::main_thread()

@@ -1284,7 +1284,7 @@ void tAutotest::mainThread()
 		/// clear dataplane states
 		{
 			dataPlane.balancer_state_clear();
-			dataPlane.neighbor_clear();
+			//			dataPlane.neighbor_clear();
 		}
 
 		try
@@ -1308,7 +1308,7 @@ void tAutotest::mainThread()
 				this->request.swap(request);
 			}
 
-			dataPlane.neighbor_flush();
+			//			dataPlane.neighbor_flush();
 
 			YAML::Node yamlRoot = YAML::LoadFile(configFilePath + "/autotest.yaml");
 

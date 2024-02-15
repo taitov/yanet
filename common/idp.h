@@ -77,13 +77,6 @@ enum class requestType : uint32_t
 	set_shm_tsc_state,
 	dump_physical_port,
 	balancer_state_clear,
-	neighbor_show,
-	neighbor_insert,
-	neighbor_remove,
-	neighbor_clear,
-	neighbor_flush,
-	neighbor_update_interfaces,
-	neighbor_stats,
 	memory_manager_update,
 	memory_manager_stats,
 	size, // size should always be at the bottom of the list, this enum allows us to find out the size of the enum list
@@ -914,42 +907,6 @@ using request = std::tuple<id, ///< latch id
 using response = eResult;
 }
 
-namespace neighbor_show
-{
-using response = std::vector<std::tuple<std::string, ///< route_name
-                                        std::string, ///< interface_name
-                                        ip_address_t, ///< ip_address
-                                        mac_address_t, ///< mac_address
-                                        std::optional<uint32_t>>>; ///< last_update_timestamp
-}
-
-namespace neighbor_insert
-{
-using request = std::tuple<std::string, ///< route_name
-                           std::string, ///< interface_name
-                           ip_address_t, ///< ip_address
-                           mac_address_t>; ///< mac_address
-}
-
-namespace neighbor_remove
-{
-using request = std::tuple<std::string, ///< route_name
-                           std::string, ///< interface_name
-                           ip_address_t>; ///< ip_address
-}
-
-namespace neighbor_update_interfaces
-{
-using request = std::vector<std::tuple<tInterfaceId, ///< interface_id
-                                       std::string, ///< route_name
-                                       std::string>>; ///< interface_name
-}
-
-namespace neighbor_stats
-{
-using response = common::neighbor::stats;
-}
-
 namespace memory_manager_update
 {
 using request = memory_manager::memory_group;
@@ -985,9 +942,6 @@ using request = std::tuple<requestType,
                                         update_vip_vport_proto::request,
                                         get_counter_by_name::request,
                                         dump_physical_port::request,
-                                        neighbor_insert::request,
-                                        neighbor_remove::request,
-                                        neighbor_update_interfaces::request,
                                         memory_manager_update::request>>;
 
 using response = std::variant<std::tuple<>,
@@ -1021,7 +975,5 @@ using response = std::variant<std::tuple<>,
                               samples::response,
                               get_counter_by_name::response,
                               get_shm_info::response,
-                              get_shm_tsc_info::response,
-                              neighbor_show::response,
-                              neighbor_stats::response>;
+                              get_shm_tsc_info::response>;
 }

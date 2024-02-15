@@ -231,38 +231,46 @@ public:
 
 	auto neighbor_show() const
 	{
-		return get<common::idp::requestType::neighbor_show, common::idp::neighbor_show::response>();
+		common::idp::update::request update_request = {std::nullopt, std::nullopt, std::nullopt};
+		const auto& update_response = get<common::idp::requestType::update, common::idp::update::response>();
+		const auto& update_response_neighbor = std::get<2>(update_response);
+
+		return std::get<common::neighbor::idp::show>(*update_response_neighbor);
 	}
 
-	auto neighbor_insert(const common::idp::neighbor_insert::request& request) const
+	auto neighbor_insert(const common::neighbor::idp::insert& request) const
 	{
-		return get<common::idp::requestType::neighbor_insert, eResult>(request);
+		common::neighbor::idp::request request2 = {common::neighbor::idp::type::insert,
+		                                           request};
+		const auto& update_response_neighbor = std::get<2>(update({std::nullopt, std::nullopt, request2}));
+
+		return std::get<eResult>(*update_response_neighbor);
 	}
 
-	auto neighbor_remove(const common::idp::neighbor_remove::request& request) const
-	{
-		return get<common::idp::requestType::neighbor_remove, eResult>(request);
-	}
+	// auto neighbor_remove(const common::idp::neighbor_remove::request& request) const
+	// {
+	// 	return get<common::idp::requestType::neighbor_remove, eResult>(request);
+	// }
 
-	auto neighbor_clear() const
-	{
-		return get<common::idp::requestType::neighbor_clear, eResult>();
-	}
+	// auto neighbor_clear() const
+	// {
+	// 	return get<common::idp::requestType::neighbor_clear, eResult>();
+	// }
 
-	auto neighbor_flush() const
-	{
-		return get<common::idp::requestType::neighbor_flush, eResult>();
-	}
+	// auto neighbor_flush() const
+	// {
+	// 	return get<common::idp::requestType::neighbor_flush, eResult>();
+	// }
 
-	auto neighbor_update_interfaces(const common::idp::neighbor_update_interfaces::request& request) const
-	{
-		return get<common::idp::requestType::neighbor_update_interfaces, eResult>(request);
-	}
+	// auto neighbor_update_interfaces(const common::idp::neighbor_update_interfaces::request& request) const
+	// {
+	// 	return get<common::idp::requestType::neighbor_update_interfaces, eResult>(request);
+	// }
 
-	auto neighbor_stats() const
-	{
-		return get<common::idp::requestType::neighbor_stats, common::idp::neighbor_stats::response>();
-	}
+	// auto neighbor_stats() const
+	// {
+	// 	return get<common::idp::requestType::neighbor_stats, common::idp::neighbor_stats::response>();
+	// }
 
 	auto memory_manager_update(const common::idp::memory_manager_update::request& request) const
 	{

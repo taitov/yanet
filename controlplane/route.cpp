@@ -749,19 +749,19 @@ void route_t::compile_interface(common::idp::updateGlobalBase::request& globalba
                                 const route::generation_t& generation,
                                 route::generation_neighbors_t& generation_neighbors)
 {
-	{
-		common::idp::neighbor_update_interfaces::request request;
-		for (const auto& [route_name, route] : generation.routes)
-		{
-			for (auto& [interface_name, interface] : route.interfaces)
-			{
-				request.emplace_back(interface.interfaceId,
-				                     route_name,
-				                     interface_name);
-			}
-		}
-		dataplane.neighbor_update_interfaces(request);
-	}
+	// {
+	// 	common::idp::neighbor_update_interfaces::request request;
+	// 	for (const auto& [route_name, route] : generation.routes)
+	// 	{
+	// 		for (auto& [interface_name, interface] : route.interfaces)
+	// 		{
+	// 			request.emplace_back(interface.interfaceId,
+	// 			                     route_name,
+	// 			                     interface_name);
+	// 		}
+	// 	}
+	// 	dataplane.neighbor_update_interfaces(request);
+	// }
 
 	for (const auto& [route_name, route] : generation.routes)
 	{
@@ -789,19 +789,19 @@ void route_t::compile_interface(common::idp::updateGlobalBase::request& globalba
 			if (neighbor_mac_address_v4)
 			{
 				generation_neighbors.mac_addresses[{route_name, interface_name, *interface.neighborIPv4Address}] = *neighbor_mac_address_v4;
-				dataplane.neighbor_insert({route_name,
-				                           interface_name,
-				                           *interface.neighborIPv4Address,
-				                           *neighbor_mac_address_v4});
+				// dataplane.neighbor_insert({route_name,
+				//                            interface_name,
+				//                            *interface.neighborIPv4Address,
+				//                            *neighbor_mac_address_v4});
 			}
 
 			if (neighbor_mac_address_v6)
 			{
 				generation_neighbors.mac_addresses[{route_name, interface_name, *interface.neighborIPv6Address}] = *neighbor_mac_address_v6;
-				dataplane.neighbor_insert({route_name,
-				                           interface_name,
-				                           *interface.neighborIPv6Address,
-				                           *neighbor_mac_address_v6});
+				// dataplane.neighbor_insert({route_name,
+				//                            interface_name,
+				//                            *interface.neighborIPv6Address,
+				//                            *neighbor_mac_address_v6});
 			}
 
 			globalbase.emplace_back(common::idp::updateGlobalBase::requestType::updateInterface,

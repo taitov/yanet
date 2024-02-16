@@ -191,18 +191,28 @@ public:
 	template<typename function_t>
 	Type_Update_Result update(const function_t& function)
 	{
-		next_lock();
 		auto result = function(next());
 		requests.emplace_back(function);
-		next_unlock();
 		return result;
+	}
+
+	/// apply all previous requests for next generation
+	void next_apply()
+	{
+		if (requests.size())
+		{
+			for (const auto& function : requests)
+			{
+				function(next());
+			}
+			requests.clear();
+		}
 	}
 
 	/// switch generation and apply all previous requests for next generation
 	template<typename wait_function_t>
 	void switch_generation_with_update(const wait_function_t& wait_function)
 	{
-		next_lock();
 		if (requests.size())
 		{
 			/// update current pointer
@@ -218,7 +228,6 @@ public:
 			}
 			requests.clear();
 		}
-		next_unlock();
 	}
 
 protected:

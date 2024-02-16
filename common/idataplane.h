@@ -231,46 +231,63 @@ public:
 
 	auto neighbor_show() const
 	{
-		common::idp::update::request update_request = {std::nullopt, std::nullopt, std::nullopt};
-		const auto& update_response = get<common::idp::requestType::update, common::idp::update::response>();
-		const auto& update_response_neighbor = std::get<2>(update_response);
+		///XXX
+		common::neighbor::idp::request request2 = {common::neighbor::idp::type::show,
+		                                           std::tuple<>()};
+		const auto update_response_neighbor = std::get<2>(update({std::nullopt, std::nullopt, request2}));
 
 		return std::get<common::neighbor::idp::show>(*update_response_neighbor);
 	}
 
 	auto neighbor_insert(const common::neighbor::idp::insert& request) const
 	{
+		///XXX
 		common::neighbor::idp::request request2 = {common::neighbor::idp::type::insert,
 		                                           request};
-		const auto& update_response_neighbor = std::get<2>(update({std::nullopt, std::nullopt, request2}));
+		const auto update_response_neighbor = std::get<2>(update({std::nullopt, std::nullopt, request2}));
 
 		return std::get<eResult>(*update_response_neighbor);
 	}
 
-	// auto neighbor_remove(const common::idp::neighbor_remove::request& request) const
-	// {
-	// 	return get<common::idp::requestType::neighbor_remove, eResult>(request);
-	// }
+	auto neighbor_remove(const common::neighbor::idp::remove& request) const
+	{
+		///XXX
+		common::neighbor::idp::request request2 = {common::neighbor::idp::type::remove,
+		                                           request};
+		const auto update_response_neighbor = std::get<2>(update({std::nullopt, std::nullopt, request2}));
 
-	// auto neighbor_clear() const
-	// {
-	// 	return get<common::idp::requestType::neighbor_clear, eResult>();
-	// }
+		return std::get<eResult>(*update_response_neighbor);
+	}
 
-	// auto neighbor_flush() const
-	// {
-	// 	return get<common::idp::requestType::neighbor_flush, eResult>();
-	// }
+	auto neighbor_clear() const
+	{
+		///XXX
+		common::neighbor::idp::request request2 = {common::neighbor::idp::type::clear,
+		                                           std::tuple<>()};
+		const auto update_response_neighbor = std::get<2>(update({std::nullopt, std::nullopt, request2}));
 
-	// auto neighbor_update_interfaces(const common::idp::neighbor_update_interfaces::request& request) const
-	// {
-	// 	return get<common::idp::requestType::neighbor_update_interfaces, eResult>(request);
-	// }
+		return std::get<eResult>(*update_response_neighbor);
+	}
 
-	// auto neighbor_stats() const
-	// {
-	// 	return get<common::idp::requestType::neighbor_stats, common::idp::neighbor_stats::response>();
-	// }
+	auto neighbor_update_interfaces(const common::neighbor::idp::update_interfaces& request) const
+	{
+		///XXX
+		common::neighbor::idp::request request2 = {common::neighbor::idp::type::update_interfaces,
+		                                           request};
+		const auto update_response_neighbor = std::get<2>(update({std::nullopt, std::nullopt, request2}));
+
+		return std::get<eResult>(*update_response_neighbor);
+	}
+
+	auto neighbor_stats() const
+	{
+		///XXX
+		common::neighbor::idp::request request2XXXOLOLO = {common::neighbor::idp::type::stats,
+		                                                   std::tuple<>()};
+		const auto update_response_neighbor = std::get<2>(update({std::nullopt, std::nullopt, request2XXXOLOLO}));
+
+		return std::get<common::neighbor::idp::stats>(*update_response_neighbor);
+	}
 
 	auto memory_manager_update(const common::idp::memory_manager_update::request& request) const
 	{

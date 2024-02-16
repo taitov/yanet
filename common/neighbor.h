@@ -32,7 +32,6 @@ enum class type
 	insert,
 	remove,
 	clear,
-	flush,
 	update_interfaces,
 	stats
 };
@@ -59,7 +58,8 @@ using update_interfaces = std::vector<std::tuple<tInterfaceId, ///< interface_id
 using stats = common::neighbor::stats;
 
 using request = std::tuple<type,
-                           std::variant<insert,
+                           std::variant<std::tuple<>,
+                                        insert,
                                         remove,
                                         update_interfaces>>;
 

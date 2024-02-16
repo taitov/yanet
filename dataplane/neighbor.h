@@ -83,7 +83,6 @@ protected:
 	eResult neighbor_insert(const common::neighbor::idp::insert& request);
 	eResult neighbor_remove(const common::neighbor::idp::remove& request);
 	eResult neighbor_clear();
-	eResult neighbor_flush();
 	eResult neighbor_update_interfaces(const common::neighbor::idp::update_interfaces& request);
 	common::neighbor::idp::stats neighbor_stats() const;
 

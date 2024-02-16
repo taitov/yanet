@@ -40,36 +40,21 @@ void insert(const std::string& route_name,
             const common::ip_address_t& ip_address,
             const common::mac_address_t& mac_address)
 {
-	(void)route_name;
-	(void)interface_name;
-	(void)ip_address;
-	(void)mac_address;
-
-	// interface::dataPlane dataplane;
-	// dataplane.neighbor_insert({route_name,
-	//                            interface_name,
-	//                            ip_address,
-	//                            mac_address});
+	interface::dataPlane dataplane;
+	dataplane.neighbor_insert({route_name,
+	                           interface_name,
+	                           ip_address,
+	                           mac_address});
 }
 
 void remove(const std::string& route_name,
             const std::string& interface_name,
             const common::ip_address_t& ip_address)
 {
-	(void)route_name;
-	(void)interface_name;
-	(void)ip_address;
-
-	// interface::dataPlane dataplane;
-	// dataplane.neighbor_remove({route_name,
-	//                            interface_name,
-	//                            ip_address});
-}
-
-void flush()
-{
-	// interface::dataPlane dataplane;
-	// dataplane.neighbor_flush();
+	interface::dataPlane dataplane;
+	dataplane.neighbor_remove({route_name,
+	                           interface_name,
+	                           ip_address});
 }
 
 }

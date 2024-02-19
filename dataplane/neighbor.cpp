@@ -140,7 +140,8 @@ static void netlink_neighbor_monitor(const std::function<void(const std::string&
 	close(nl_socket);
 }
 
-module::module() :dataplane(nullptr)
+module::module() :
+        dataplane(nullptr)
 {
 	memset(&stats, 0, sizeof(stats));
 }

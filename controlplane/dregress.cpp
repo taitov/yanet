@@ -8,11 +8,9 @@ dregress_t::dregress_t() :
 
 eResult dregress_t::init()
 {
-	common::idp::updateGlobalBase::request globalbase = {{common::idp::updateGlobalBase::requestType::dregress_prefix_clear, std::tuple<>()},
-	                                                     {common::idp::updateGlobalBase::requestType::dregress_local_prefix_update,
-	                                                      common::idp::updateGlobalBase::dregress_local_prefix_update::request()}};
-
-	dataplane.update({globalbase, std::nullopt, std::nullopt});
+	dataplane.update_globalbase({{common::idp::updateGlobalBase::requestType::dregress_prefix_clear, std::tuple<>()},
+	                             {common::idp::updateGlobalBase::requestType::dregress_local_prefix_update,
+	                              common::idp::updateGlobalBase::dregress_local_prefix_update::request()}});
 
 	controlPlane->register_command(common::icp::requestType::dregress_config, [this]() {
 		return dregress_config();
@@ -203,7 +201,7 @@ void dregress_t::prefix_flush()
 		compile(globalbase, generations.current());
 	}
 
-	dataplane.update({globalbase, std::nullopt, std::nullopt});
+	dataplane.update_globalbase(globalbase);
 }
 
 common::icp::dregress_config::response dregress_t::dregress_config() const

@@ -914,13 +914,107 @@ using request = memory_manager::memory_group;
 
 namespace update
 {
-using request = std::tuple<std::optional<updateGlobalBase::request>,
-                           std::optional<acl::idp::request>,
-                           std::optional<neighbor::idp::request>>;
 
-using response = std::tuple<std::optional<updateGlobalBase::response>,
-                            std::optional<acl::idp::response>,
-                            std::optional<neighbor::idp::response>>;
+class request
+{
+public:
+	auto& globalbase()
+	{
+		return std::get<0>(request);
+	}
+
+	const auto& globalbase() const
+	{
+		return std::get<0>(request);
+	}
+
+	auto& acl()
+	{
+		return std::get<1>(request);
+	}
+
+	const auto& acl() const
+	{
+		return std::get<1>(request);
+	}
+
+	auto& neighbor()
+	{
+		return std::get<2>(request);
+	}
+
+	const auto& neighbor() const
+	{
+		return std::get<2>(request);
+	}
+
+	void pop(stream_in_t& stream)
+	{
+		stream.pop(request);
+	}
+
+	void push(stream_out_t& stream) const
+	{
+		stream.push(request);
+	}
+
+public:
+	std::tuple<std::optional<updateGlobalBase::request>,
+	           std::optional<acl::idp::request>,
+	           std::optional<neighbor::idp::request>>
+	        request;
+};
+
+class response
+{
+public:
+	auto& globalbase()
+	{
+		return std::get<0>(response);
+	}
+
+	const auto& globalbase() const
+	{
+		return std::get<0>(response);
+	}
+
+	auto& acl()
+	{
+		return std::get<1>(response);
+	}
+
+	const auto& acl() const
+	{
+		return std::get<1>(response);
+	}
+
+	auto& neighbor()
+	{
+		return std::get<2>(response);
+	}
+
+	const auto& neighbor() const
+	{
+		return std::get<2>(response);
+	}
+
+	void pop(stream_in_t& stream)
+	{
+		stream.pop(response);
+	}
+
+	void push(stream_out_t& stream) const
+	{
+		stream.push(response);
+	}
+
+public:
+	std::tuple<std::optional<updateGlobalBase::response>,
+	           std::optional<acl::idp::response>,
+	           std::optional<neighbor::idp::response>>
+	        response;
+};
+
 }
 
 //

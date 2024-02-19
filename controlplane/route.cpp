@@ -3,11 +3,8 @@
 
 eResult route_t::init()
 {
-	{
-		common::idp::updateGlobalBase::request globalbase = {{common::idp::updateGlobalBase::requestType::route_lpm_update,
-		                                                      common::idp::lpm::request({common::idp::lpm::clear()})}};
-		dataplane.update({std::move(globalbase), std::nullopt, std::nullopt});
-	}
+	dataplane.update_globalbase({{common::idp::updateGlobalBase::requestType::route_lpm_update,
+	                              common::idp::lpm::request({common::idp::lpm::clear()})}});
 
 	tunnel_counter.init(&controlPlane->counter_manager);
 	tunnel_counter.insert({true, 0, ip_address_t(), 0}); ///< fallback v4
@@ -388,7 +385,7 @@ void route_t::prefix_flush()
 	tunnel_counter.allocate();
 
 	compile(globalbase, generations.current());
-	dataplane.update({globalbase, std::nullopt, std::nullopt}); ///< может вызвать исключение, которое никто не поймает, и это приведёт к abort()
+	dataplane.update_globalbase(globalbase); ///< может вызвать исключение, которое никто не поймает, и это приведёт к abort()
 
 	tunnel_counter.release();
 

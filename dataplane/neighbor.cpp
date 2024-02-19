@@ -385,28 +385,9 @@ void module::report(nlohmann::json& json)
 	json["neighbor"]["resolve"] = stats.resolve;
 }
 
-inline const auto& get_request(const common::idp::update::request& request)
-{
-	const auto& [request_globalbase, request_acl, request_neighbor] = request;
-	(void)request_globalbase;
-	(void)request_acl;
-
-	return request_neighbor;
-}
-
-inline auto& get_response(common::idp::update::response& response)
-{
-	auto& [response_globalbase, response_acl, response_neighbor] = response;
-	(void)response_globalbase;
-	(void)response_acl;
-
-	return response_neighbor;
-}
-
 void module::update_before(const common::idp::update::request& request)
 {
-	const auto& request_neighbor = get_request(request);
-	if (!request_neighbor)
+	if (!request.neighbor())
 	{
 		return;
 	}
@@ -421,15 +402,14 @@ void module::update_before(const common::idp::update::request& request)
 void module::update(const common::idp::update::request& request,
                     common::idp::update::response& response)
 {
-	const auto& request_neighbor = get_request(request);
-	if (!request_neighbor)
+	if (!request.neighbor())
 	{
 		return;
 	}
 
-	const auto& [type, variant] = *request_neighbor;
+	const auto& [type, variant] = *request.neighbor();
 
-	auto& response_neighbor = get_response(response);
+	auto& response_neighbor = response.neighbor();
 	if (type == common::neighbor::idp::type::show)
 	{
 		response_neighbor = neighbor_show();
@@ -465,8 +445,7 @@ void module::update(const common::idp::update::request& request,
 
 void module::update_after(const common::idp::update::request& request)
 {
-	const auto& request_neighbor = get_request(request);
-	if (!request_neighbor)
+	if (!request.neighbor())
 	{
 		return;
 	}
@@ -535,8 +514,10 @@ void module::netlink_thread()
 			                                     interface_name,
 			                                     ip_address,
 			                                     mac_address);
-			common::neighbor::idp::request request(common::neighbor::idp::type::insert, insert);
-			dataplane->controlPlane->update({std::nullopt, std::nullopt, request});
+			common::idp::update::request update;
+			update.neighbor() = {common::neighbor::idp::type::insert, insert};
+
+			dataplane->controlPlane->update(update);
 		});
 
 		YANET_LOG_WARNING("restart neighbor_monitor\n");
@@ -587,8 +568,10 @@ void module::resolve(const dataplane::neighbor::key& key)
 	                                     interface_name,
 	                                     ip_address,
 	                                     mac_address);
-	common::neighbor::idp::request request(common::neighbor::idp::type::insert, insert);
-	dataplane->controlPlane->update({std::nullopt, std::nullopt, request});
+	common::idp::update::request update;
+	update.neighbor() = {common::neighbor::idp::type::insert, insert};
+
+	dataplane->controlPlane->update(update);
 #else // CONFIG_YADECAP_AUTOTEST
 
 	/// @todo: in first, try resolve like 'ip neig show 10.0.0.1 dev eth0'

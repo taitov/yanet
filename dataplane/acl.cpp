@@ -89,28 +89,9 @@ void module::limits(common::idp::limits::response& response)
 	}
 }
 
-inline const auto& get_request(const common::idp::update::request& request)
-{
-	const auto& [request_globalbase, request_acl, request_neighbor] = request;
-	(void)request_globalbase;
-	(void)request_neighbor;
-
-	return request_acl;
-}
-
-inline auto& get_response(common::idp::update::response& response)
-{
-	auto& [response_globalbase, response_acl, response_neighbor] = response;
-	(void)response_globalbase;
-	(void)response_neighbor;
-
-	return response_acl;
-}
-
 void module::update_before(const common::idp::update::request& request)
 {
-	const auto& request_acl = get_request(request);
-	if (!request_acl)
+	if (!request.acl())
 	{
 		return;
 	}
@@ -121,22 +102,18 @@ void module::update_before(const common::idp::update::request& request)
 void module::update(const common::idp::update::request& request,
                     common::idp::update::response& response)
 {
-	const auto& request_acl = get_request(request);
-	if (!request_acl)
+	if (!request.acl())
 	{
 		return;
 	}
 
-	auto& response_acl = get_response(response);
-	response_acl = acl_update(*request_acl);
-
+	response.acl() = acl_update(*request.acl());
 	return;
 }
 
 void module::update_after(const common::idp::update::request& request)
 {
-	const auto& request_acl = get_request(request);
-	if (!request_acl)
+	if (!request.acl())
 	{
 		return;
 	}

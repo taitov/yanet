@@ -1232,28 +1232,9 @@ void cDataPlane::globalbase_update_worker_base(const std::vector<std::tuple<tSoc
 	}
 }
 
-inline const auto& get_request(const common::idp::update::request& request)
-{
-	const auto& [request_globalbase, request_acl, request_neighbor] = request;
-	(void)request_acl;
-	(void)request_neighbor;
-
-	return request_globalbase;
-}
-
-inline auto& get_response(common::idp::update::response& response)
-{
-	auto& [response_globalbase, response_acl, response_neighbor] = response;
-	(void)response_acl;
-	(void)response_neighbor;
-
-	return response_globalbase;
-}
-
 void cDataPlane::globalbase_update_before(const common::idp::update::request& request)
 {
-	const auto& request_globalbase = get_request(request);
-	if (!request_globalbase)
+	if (!request.globalbase())
 	{
 		return;
 	}
@@ -1264,21 +1245,18 @@ void cDataPlane::globalbase_update_before(const common::idp::update::request& re
 void cDataPlane::globalbase_update(const common::idp::update::request& request,
                                    common::idp::update::response& response)
 {
-	const auto& request_globalbase = get_request(request);
-	if (!request_globalbase)
+	if (!request.globalbase())
 	{
 		return;
 	}
-
-	auto& response_globalbase = get_response(response);
 
 	for (auto& iter : globalBases)
 	{
 		auto* globalBaseNext = iter.second[currentGlobalBaseId ^ 1];
 		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_pre_update);
-		response_globalbase = globalBaseNext->update(*request_globalbase);
+		response.globalbase() = globalBaseNext->update(*request.globalbase());
 		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_post_update);
-		if (response_globalbase != eResult::success)
+		if (response.globalbase() != eResult::success)
 		{
 			/// XXX: ++errors["updateGlobalBase"];
 			return;
@@ -1295,8 +1273,7 @@ void cDataPlane::globalbase_update(const common::idp::update::request& request,
 
 void cDataPlane::globalbase_update_after(const common::idp::update::request& request)
 {
-	const auto& request_globalbase = get_request(request);
-	if (!request_globalbase)
+	if (!request.globalbase())
 	{
 		return;
 	}
@@ -1305,7 +1282,7 @@ void cDataPlane::globalbase_update_after(const common::idp::update::request& req
 	{
 		auto* globalBaseNext = iter.second[currentGlobalBaseId ^ 1];
 		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_pre_update);
-		eResult result = globalBaseNext->update(*request_globalbase);
+		eResult result = globalBaseNext->update(*request.globalbase());
 		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_post_update);
 		if (result != eResult::success)
 		{

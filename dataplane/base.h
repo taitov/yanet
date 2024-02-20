@@ -83,6 +83,9 @@ public:
 	generation() :
 	        globalBase(nullptr),
 	        neighbor_hashtable(nullptr),
+	        acl_network_ipv4_source(nullptr),
+	        acl_network_ipv4_destination(nullptr),
+	        acl_network_ipv6_destination_ht(nullptr),
 	        acl_transport_table(nullptr),
 	        acl_total_table(nullptr)
 	{

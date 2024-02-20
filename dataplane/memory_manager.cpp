@@ -135,3 +135,8 @@ void memory_manager::debug(tSocketId socket_id)
 		YANET_LOG_INFO("heap_allocsz_bytes: %lu MB\n", stats.heap_allocsz_bytes / (1024 * 1024));
 	}
 }
+
+void dataplane::memory_manager::limits(common::idp::limits::response& response)
+{
+	(void)response;
+}

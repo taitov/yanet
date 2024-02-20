@@ -385,6 +385,11 @@ void module::report(nlohmann::json& json)
 	json["neighbor"]["resolve"] = stats.resolve;
 }
 
+void module::limits(common::idp::limits::response& response)
+{
+	(void)response;
+}
+
 void module::update_before(const common::idp::update::request& request)
 {
 	if (!request.neighbor())

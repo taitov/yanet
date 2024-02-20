@@ -746,7 +746,7 @@ void route_t::compile_interface(common::idp::updateGlobalBase::request& globalba
                                 const route::generation_t& generation,
                                 route::generation_neighbors_t& generation_neighbors)
 {
-	/// XXX: use global update
+	/// @todo: use dataplane.update()
 	{
 		common::neighbor::idp::update_interfaces request;
 		for (const auto& [route_name, route] : generation.routes)

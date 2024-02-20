@@ -68,6 +68,7 @@ public:
 	eResult init(cDataPlane* dataplane);
 	void update_worker_base(const std::vector<std::tuple<tSocketId, dataplane::base::generation*>>& base_nexts);
 	void report(nlohmann::json& json);
+	void limits(common::idp::limits::response& response);
 
 	void update_before(const common::idp::update::request& request);
 	void update(const common::idp::update::request& request, common::idp::update::response& response);

@@ -958,8 +958,8 @@ common::idp::limits::response cControlPlane::limits()
 	}
 
 	dregress.limits(response);
-	///XXX	dataPlane->memory_manager.limits(response);
-	///XXX	dataPlane->neighbor.limits(response);
+	dataPlane->memory_manager.limits(response);
+	dataPlane->neighbor.limits(response);
 	dataPlane->acl_module.limits(response);
 
 	return response;

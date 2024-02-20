@@ -1258,7 +1258,7 @@ void cDataPlane::globalbase_update(const common::idp::update::request& request,
 		DEBUG_LATCH_WAIT(common::idp::debug_latch_update::id::global_base_post_update);
 		if (response.globalbase() != eResult::success)
 		{
-			/// XXX: ++errors["updateGlobalBase"];
+			/// @todo: write error
 			return;
 		}
 	}
@@ -1287,7 +1287,7 @@ void cDataPlane::globalbase_update_after(const common::idp::update::request& req
 		if (result != eResult::success)
 		{
 			// Practically unreachable.
-			/// XXX: ++errors["updateGlobalBase"];
+			/// @todo: write error
 			break;
 		}
 	}

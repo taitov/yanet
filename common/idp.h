@@ -912,6 +912,16 @@ namespace memory_manager_update
 using request = memory_manager::memory_group;
 }
 
+namespace memory_manager_stats
+{
+using object = std::tuple<std::string, ///< name
+                          tSocketId, ///< socket_id
+                          uint64_t>; ///< size
+
+using response = std::tuple<memory_manager::memory_group,
+                            std::vector<object>>;
+}
+
 namespace update
 {
 
@@ -1069,5 +1079,6 @@ using response = std::variant<std::tuple<>,
                               samples::response,
                               get_counter_by_name::response,
                               get_shm_info::response,
-                              get_shm_tsc_info::response>;
+                              get_shm_tsc_info::response,
+                              memory_manager_stats::response>;
 }

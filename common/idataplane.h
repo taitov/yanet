@@ -290,6 +290,11 @@ public:
 		return get<common::idp::requestType::memory_manager_update, eResult>(request);
 	}
 
+	auto memory_manager_stats() const
+	{
+		return get<common::idp::requestType::memory_manager_stats, common::idp::memory_manager_stats::response>();
+	}
+
 protected:
 	void connectToDataPlane() const
 	{

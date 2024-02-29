@@ -59,11 +59,6 @@ struct transport_layer_t
 		flat<uint16_t> identifier;
 	} icmp;
 };
-
-/// @todo: move to config
-using network_ipv6_source = YANET_CONFIG_ACL_NETWORK_LPM6_TYPE;
-using network_ipv6_destination = YANET_CONFIG_ACL_NETWORK_LPM6_TYPE;
-using network_table = dynamic_table<uint32_t>;
 }
 
 namespace nat64stateful
@@ -154,9 +149,6 @@ protected:
 	eResult route_tunnel_weight_update(const common::idp::updateGlobalBase::route_tunnel_weight_update::request& request);
 	eResult route_tunnel_value_update(const common::idp::updateGlobalBase::route_tunnel_value_update::request& request);
 	eResult update_early_decap_flags(const common::idp::updateGlobalBase::update_early_decap_flags::request& request);
-	eResult acl_network_ipv6_source(const common::idp::updateGlobalBase::acl_network_ipv6_source::request& request);
-	eResult acl_network_ipv6_destination(const common::idp::updateGlobalBase::acl_network_ipv6_destination::request& request);
-	eResult acl_network_table(const common::idp::updateGlobalBase::acl_network_table::request& request);
 	eResult acl_network_flags(const common::idp::updateGlobalBase::acl_network_flags::request& request);
 	eResult acl_transport_layers(const common::idp::updateGlobalBase::acl_transport_layers::request& request);
 	eResult acl_values(const common::idp::updateGlobalBase::acl_values::request& request);
@@ -178,16 +170,6 @@ protected:
 public: ///< @todo
 	cDataPlane* dataPlane;
 	tSocketId socketId;
-
-	struct
-	{
-		struct
-		{
-			acl::network_ipv6_source::updater network_ipv6_source;
-			acl::network_ipv6_destination::updater network_ipv6_destination;
-			acl::network_table::updater network_table;
-		} acl;
-	} updater;
 
 	/// variables above are not needed for cWorker::mainThread()
 	YADECAP_CACHE_ALIGNED(align11);
@@ -238,16 +220,6 @@ public: ///< @todo
 
 	struct
 	{
-		struct
-		{
-			struct
-			{
-				acl::network_ipv6_source* source;
-				acl::network_ipv6_destination* destination;
-			} ipv6;
-		} network;
-
-		acl::network_table* network_table;
 		flat<uint8_t> network_flags;
 
 		uint32_t transport_layers_mask;

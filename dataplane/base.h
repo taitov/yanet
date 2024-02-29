@@ -85,7 +85,10 @@ public:
 	        neighbor_hashtable(nullptr),
 	        acl_network_ipv4_source(nullptr),
 	        acl_network_ipv4_destination(nullptr),
+	        acl_network_ipv6_source(nullptr),
 	        acl_network_ipv6_destination_ht(nullptr),
+	        acl_network_ipv6_destination(nullptr),
+	        acl_network_table(nullptr),
 	        acl_transport_table(nullptr),
 	        acl_total_table(nullptr)
 	{
@@ -95,7 +98,10 @@ public:
 	const dataplane::neighbor::hashtable* neighbor_hashtable;
 	const dataplane::acl::network_ipv4_source::object_type* acl_network_ipv4_source;
 	const dataplane::acl::network_ipv4_destination::object_type* acl_network_ipv4_destination;
+	const dataplane::acl::network_ipv6_source::object_type* acl_network_ipv6_source;
 	const dataplane::acl::network_ipv6_destination_ht::object_type* acl_network_ipv6_destination_ht;
+	const dataplane::acl::network_ipv6_destination::object_type* acl_network_ipv6_destination;
+	const dataplane::acl::network_table::object_type* acl_network_table;
 	const dataplane::acl::transport_table::object_type* acl_transport_table;
 	const dataplane::acl::total_table::object_type* acl_total_table;
 } __rte_aligned(2 * RTE_CACHE_LINE_SIZE);

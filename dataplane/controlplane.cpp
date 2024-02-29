@@ -931,13 +931,6 @@ common::idp::limits::response cControlPlane::limits()
 			             globalBase->route_tunnel_lpm6.getStats().extendedChunksCount,
 			             YANET_CONFIG_ROUTE_TUNNEL_LPM6_EXTENDED_SIZE);
 
-			globalBase->updater.acl.network_table.limits(response, "acl.network.ht");
-			globalBase->updater.acl.network_ipv6_source.limits(response, "acl.network.v6.source.lpm");
-
-			/// globalBase->acl.network_ipv6_destination_ht is not critical
-
-			globalBase->updater.acl.network_ipv6_destination.limits(response, "acl.network.v6.destination.lpm");
-
 			limit_insert(response,
 			             "tun64.mappings.ht.keys",
 			             socket_id,

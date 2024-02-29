@@ -5,7 +5,6 @@
 #include "common.h"
 #include "dataplane.h"
 #include "globalbase.h"
-#include "memory_manager.h"
 #include "worker.h"
 
 #include "common/counters.h"
@@ -140,18 +139,6 @@ eResult generation::update(const common::idp::updateGlobalBase::request& request
 		else if (type == common::idp::updateGlobalBase::requestType::early_decap_flags)
 		{
 			result = update_early_decap_flags(std::get<common::idp::updateGlobalBase::update_early_decap_flags::request>(data));
-		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_network_ipv6_source)
-		{
-			result = acl_network_ipv6_source(std::get<common::idp::updateGlobalBase::acl_network_ipv6_source::request>(data));
-		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_network_ipv6_destination)
-		{
-			result = acl_network_ipv6_destination(std::get<common::idp::updateGlobalBase::acl_network_ipv6_destination::request>(data));
-		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_network_table)
-		{
-			result = acl_network_table(std::get<common::idp::updateGlobalBase::acl_network_table::request>(data));
 		}
 		else if (type == common::idp::updateGlobalBase::requestType::acl_network_flags)
 		{
@@ -1830,50 +1817,6 @@ eResult generation::update_early_decap_flags(const common::idp::updateGlobalBase
 	eResult result = eResult::success;
 
 	early_decap_enabled = request;
-
-	return result;
-}
-
-eResult generation::acl_network_ipv6_source(const common::idp::updateGlobalBase::acl_network_ipv6_source::request& request)
-{
-	eResult result = eResult::success;
-
-	result = updater.acl.network_ipv6_source.update(request);
-	if (result != eResult::success)
-	{
-		YANET_LOG_ERROR("acl.network.ipv6.source.update(): %s\n", result_to_c_str(result));
-		return result;
-	}
-
-	return result;
-}
-
-eResult generation::acl_network_ipv6_destination(const common::idp::updateGlobalBase::acl_network_ipv6_destination::request& request)
-{
-	eResult result = eResult::success;
-
-	result = updater.acl.network_ipv6_destination.update(request);
-	if (result != eResult::success)
-	{
-		YANET_LOG_ERROR("acl.network.ipv6.destination.update(): %s\n", result_to_c_str(result));
-		return result;
-	}
-
-	return result;
-}
-
-eResult generation::acl_network_table(const common::idp::updateGlobalBase::acl_network_table::request& request)
-{
-	eResult result = eResult::success;
-
-	const auto& [width, values] = request;
-
-	result = updater.acl.network_table.update(width, values);
-	if (result != eResult::success)
-	{
-		YANET_LOG_ERROR("acl.network_table.update(): %s\n", result_to_c_str(result));
-		return result;
-	}
 
 	return result;
 }

@@ -19,10 +19,10 @@ struct result_t
 {
 	common::acl::idp::network_ipv4_source acl_network_ipv4_source;
 	common::acl::idp::network_ipv4_destination acl_network_ipv4_destination;
-	common::idp::updateGlobalBase::acl_network_ipv6_source::request acl_network_ipv6_source;
+	common::acl::idp::network_ipv6_source acl_network_ipv6_source;
 	common::acl::idp::network_ipv6_destination_ht acl_network_ipv6_destination_ht;
-	common::idp::updateGlobalBase::acl_network_ipv6_destination::request acl_network_ipv6_destination;
-	common::idp::updateGlobalBase::acl_network_table::request acl_network_table;
+	common::acl::idp::network_ipv6_destination acl_network_ipv6_destination;
+	common::acl::idp::network_table acl_network_table;
 	common::idp::updateGlobalBase::acl_network_flags::request acl_network_flags;
 	common::idp::updateGlobalBase::acl_transport_layers::request acl_transport_layers;
 	std::vector<common::acl::idp::transport_table> acl_transport_tables;

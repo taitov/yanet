@@ -1431,10 +1431,10 @@ inline void cWorker::acl_ingress_handle4()
 	                                          value_acl.ipv4_destinations,
 	                                          acl_ingress_stack4.mbufsCount);
 
-	acl.network_table->lookup(value_acl.ipv4_sources,
-	                          value_acl.ipv4_destinations,
-	                          value_acl.networks,
-	                          acl_ingress_stack4.mbufsCount);
+	base.acl_network_table->lookup(value_acl.ipv4_sources,
+	                               value_acl.ipv4_destinations,
+	                               value_acl.networks,
+	                               acl_ingress_stack4.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_ingress_stack4.mbufsCount;
@@ -1607,25 +1607,25 @@ inline void cWorker::acl_ingress_handle6()
 		rte_memcpy(key_acl.ipv6_destinations[mbuf_i].bytes, ipv6Header->dst_addr, 16);
 	}
 
-	acl.network.ipv6.source->lookup(key_acl.ipv6_sources,
-	                                value_acl.ipv6_sources,
-	                                acl_ingress_stack6.mbufsCount);
+	base.acl_network_ipv6_source->lookup(key_acl.ipv6_sources,
+	                                     value_acl.ipv6_sources,
+	                                     acl_ingress_stack6.mbufsCount);
 
 	{
 		uint32_t mask = base.acl_network_ipv6_destination_ht->lookup(hashes,
 		                                                             key_acl.ipv6_destinations,
 		                                                             value_acl.ipv6_destinations,
 		                                                             acl_ingress_stack6.mbufsCount);
-		acl.network.ipv6.destination->lookup(mask,
-		                                     key_acl.ipv6_destinations,
-		                                     value_acl.ipv6_destinations,
-		                                     acl_ingress_stack6.mbufsCount);
+		base.acl_network_ipv6_destination->lookup(mask,
+		                                          key_acl.ipv6_destinations,
+		                                          value_acl.ipv6_destinations,
+		                                          acl_ingress_stack6.mbufsCount);
 	}
 
-	acl.network_table->lookup(value_acl.ipv6_sources,
-	                          value_acl.ipv6_destinations,
-	                          value_acl.networks,
-	                          acl_ingress_stack6.mbufsCount);
+	base.acl_network_table->lookup(value_acl.ipv6_sources,
+	                               value_acl.ipv6_destinations,
+	                               value_acl.networks,
+	                               acl_ingress_stack6.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_ingress_stack6.mbufsCount;
@@ -5142,10 +5142,10 @@ inline void cWorker::acl_egress_handle4()
 	                                          value_acl.ipv4_destinations,
 	                                          acl_egress_stack4.mbufsCount);
 
-	acl.network_table->lookup(value_acl.ipv4_sources,
-	                          value_acl.ipv4_destinations,
-	                          value_acl.networks,
-	                          acl_egress_stack4.mbufsCount);
+	base.acl_network_table->lookup(value_acl.ipv4_sources,
+	                               value_acl.ipv4_destinations,
+	                               value_acl.networks,
+	                               acl_egress_stack4.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_egress_stack4.mbufsCount;
@@ -5318,18 +5318,18 @@ inline void cWorker::acl_egress_handle6()
 		rte_memcpy(key_acl.ipv6_destinations[mbuf_i].bytes, ipv6Header->dst_addr, 16);
 	}
 
-	acl.network.ipv6.source->lookup(key_acl.ipv6_sources,
-	                                value_acl.ipv6_sources,
-	                                acl_egress_stack6.mbufsCount);
-
-	acl.network.ipv6.destination->lookup(key_acl.ipv6_destinations,
-	                                     value_acl.ipv6_destinations,
+	base.acl_network_ipv6_source->lookup(key_acl.ipv6_sources,
+	                                     value_acl.ipv6_sources,
 	                                     acl_egress_stack6.mbufsCount);
 
-	acl.network_table->lookup(value_acl.ipv6_sources,
-	                          value_acl.ipv6_destinations,
-	                          value_acl.networks,
-	                          acl_egress_stack6.mbufsCount);
+	base.acl_network_ipv6_destination->lookup(key_acl.ipv6_destinations,
+	                                          value_acl.ipv6_destinations,
+	                                          acl_egress_stack6.mbufsCount);
+
+	base.acl_network_table->lookup(value_acl.ipv6_sources,
+	                               value_acl.ipv6_destinations,
+	                               value_acl.networks,
+	                               acl_egress_stack6.mbufsCount);
 
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < acl_egress_stack6.mbufsCount;

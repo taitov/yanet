@@ -138,9 +138,6 @@ enum class requestType : uint32_t
 	route_tunnel_weight_update,
 	route_tunnel_value_update,
 	early_decap_flags,
-	acl_network_ipv6_source,
-	acl_network_ipv6_destination,
-	acl_network_table,
 	acl_network_flags,
 	acl_transport_layers,
 	acl_values,
@@ -295,21 +292,6 @@ using request = std::tuple<
 namespace update_early_decap_flags
 {
 using request = bool;
-}
-
-namespace acl_network_ipv6_source
-{
-using request = std::vector<acl::tree_chunk_8bit_t>;
-}
-
-namespace acl_network_ipv6_destination
-{
-using request = std::vector<acl::tree_chunk_8bit_t>;
-}
-
-namespace acl_network_table
-{
-using request = std::tuple<uint32_t, std::vector<tAclGroupId>>;
 }
 
 namespace acl_network_flags
@@ -484,8 +466,6 @@ using requestVariant = std::variant<std::tuple<>,
                                     update_balancer::request,
                                     update_balancer_services::request,
                                     route_tunnel_weight_update::request,
-                                    acl_network_ipv6_source::request, /// + acl_network_ipv4_destination, acl_network_ipv6_source, acl_network_ipv6_destination
-                                    acl_network_table::request, /// + aclTransportDestination
                                     acl_network_flags::request,
                                     acl_transport_layers::request,
                                     acl_values::request,

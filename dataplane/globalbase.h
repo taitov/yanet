@@ -12,7 +12,6 @@
 #include "common/tsc_deltas.h"
 
 #include "common.h"
-#include "dynamic_table.h"
 #include "flat.h"
 #include "hashtable.h"
 #include "lpm.h"
@@ -31,34 +30,6 @@ namespace acl
 {
 using ipv4_states_ht = hashtable_mod_spinlock_dynamic<fw4_state_key_t, fw_state_value_t, 16>;
 using ipv6_states_ht = hashtable_mod_spinlock_dynamic<fw6_state_key_t, fw_state_value_t, 16>;
-
-struct transport_layer_t
-{
-	flat<uint8_t> protocol;
-
-	struct
-	{
-		flat<uint16_t> source;
-		flat<uint16_t> destination;
-		flat<uint8_t> flags;
-	} tcp;
-
-	struct
-	{
-		flat<uint16_t> source;
-		flat<uint16_t> destination;
-	} udp;
-
-	struct
-	{
-		/** @todo:
-		        flat<uint8_t> type;
-		        flat<uint8_t> code;
-		        */
-		flat<uint16_t> type_code;
-		flat<uint16_t> identifier;
-	} icmp;
-};
 }
 
 namespace nat64stateful
@@ -150,8 +121,6 @@ protected:
 	eResult route_tunnel_value_update(const common::idp::updateGlobalBase::route_tunnel_value_update::request& request);
 	eResult update_early_decap_flags(const common::idp::updateGlobalBase::update_early_decap_flags::request& request);
 	eResult acl_network_flags(const common::idp::updateGlobalBase::acl_network_flags::request& request);
-	eResult acl_transport_layers(const common::idp::updateGlobalBase::acl_transport_layers::request& request);
-	eResult acl_values(const common::idp::updateGlobalBase::acl_values::request& request);
 	eResult dump_tags_ids(const common::idp::updateGlobalBase::dump_tags_ids::request& request);
 	eResult dregress_prefix_update(const common::idp::updateGlobalBase::dregress_prefix_update::request& request);
 	eResult dregress_prefix_remove(const common::idp::updateGlobalBase::dregress_prefix_remove::request& request);
@@ -221,11 +190,7 @@ public: ///< @todo
 	struct
 	{
 		flat<uint8_t> network_flags;
-
 		uint32_t transport_layers_mask;
-		acl::transport_layer_t* transport_layers;
-
-		common::acl::value_t* values;
 	} acl;
 
 	YADECAP_CACHE_ALIGNED(align5);

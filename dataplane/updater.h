@@ -389,4 +389,79 @@ public:
 	object_type* pointer;
 };
 
+//
+
+template<typename type>
+class updater_array
+{
+public:
+	using object_type = type;
+
+	updater_array(const char* name,
+	              dataplane::memory_manager* memory_manager,
+	              const tSocketId socket_id) :
+	        name(name),
+	        memory_manager(memory_manager),
+	        socket_id(socket_id),
+	        pointer(nullptr)
+	{
+	}
+
+	object_type& operator[](const size_t index)
+	{
+		return *(pointer + index);
+	}
+
+	eResult create(uint64_t count)
+	{
+		if (!count)
+		{
+			count = 1;
+		}
+
+		pointer = memory_manager->create_static_array<object_type>(name.data(),
+		                                                           count,
+		                                                           socket_id);
+		if (pointer == nullptr)
+		{
+			return eResult::errorAllocatingMemory;
+		}
+
+		this->count = count;
+
+		return eResult::success;
+	}
+
+	void clear()
+	{
+		if (pointer)
+		{
+			memory_manager->destroy(pointer);
+			pointer = nullptr;
+		}
+	}
+
+	void limits(common::limit::limits& limits) const
+	{
+		limits.emplace_back(name,
+		                    socket_id,
+		                    count,
+		                    count);
+	}
+
+	void report(nlohmann::json& report) const
+	{
+		report["pointer"] = to_hex(pointer);
+	}
+
+protected:
+	std::string name;
+	dataplane::memory_manager* memory_manager;
+	tSocketId socket_id;
+	uint64_t count;
+
+public:
+	object_type* pointer;
+};
+
 }

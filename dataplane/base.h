@@ -102,8 +102,10 @@ public:
 	const dataplane::acl::network_ipv6_destination_ht::object_type* acl_network_ipv6_destination_ht;
 	const dataplane::acl::network_ipv6_destination::object_type* acl_network_ipv6_destination;
 	const dataplane::acl::network_table::object_type* acl_network_table;
+	const dataplane::acl::transport_layers::object_type* acl_transport_layers;
 	const dataplane::acl::transport_table::object_type* acl_transport_table;
 	const dataplane::acl::total_table::object_type* acl_total_table;
+	const dataplane::acl::values::object_type* acl_values;
 } __rte_aligned(2 * RTE_CACHE_LINE_SIZE);
 
 }

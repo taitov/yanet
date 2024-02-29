@@ -139,8 +139,6 @@ enum class requestType : uint32_t
 	route_tunnel_value_update,
 	early_decap_flags,
 	acl_network_flags,
-	acl_transport_layers,
-	acl_values,
 	dregress_prefix_update,
 	dregress_prefix_remove,
 	dregress_prefix_clear,
@@ -299,25 +297,6 @@ namespace acl_network_flags
 using request = std::vector<acl::ranges_uint8_t>;
 }
 
-namespace acl_transport_layers
-{
-using layer = std::tuple<std::vector<acl::ranges_uint8_t>, ///< protocol
-                         std::vector<acl::ranges_uint16_t>, ///< tcp.source
-                         std::vector<acl::ranges_uint16_t>, ///< tcp.destination
-                         std::vector<acl::ranges_uint8_t>, ///< tcp.flags
-                         std::vector<acl::ranges_uint16_t>, ///< udp.source
-                         std::vector<acl::ranges_uint16_t>, ///< udp.destination
-                         std::vector<acl::ranges_uint16_t>, ///< icmp.type_code
-                         std::vector<acl::ranges_uint16_t>>; ///< icmp.identifier
-
-using request = std::vector<layer>;
-}
-
-namespace acl_values
-{
-using request = std::vector<acl::value_t>;
-}
-
 namespace dump_tags_ids
 {
 using request = std::vector<std::string>;
@@ -467,8 +446,6 @@ using requestVariant = std::variant<std::tuple<>,
                                     update_balancer_services::request,
                                     route_tunnel_weight_update::request,
                                     acl_network_flags::request,
-                                    acl_transport_layers::request,
-                                    acl_values::request,
                                     dump_tags_ids::request,
                                     lpm::request,
                                     route_value_update::request,

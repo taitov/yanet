@@ -24,10 +24,10 @@ struct result_t
 	common::acl::idp::network_ipv6_destination acl_network_ipv6_destination;
 	common::acl::idp::network_table acl_network_table;
 	common::idp::updateGlobalBase::acl_network_flags::request acl_network_flags;
-	common::idp::updateGlobalBase::acl_transport_layers::request acl_transport_layers;
+	common::acl::idp::transport_layers acl_transport_layers;
 	std::vector<common::acl::idp::transport_table> acl_transport_tables;
 	common::acl::idp::total_table acl_total_table;
-	common::idp::updateGlobalBase::acl_values::request acl_values;
+	common::acl::idp::values acl_values;
 
 	std::vector<ids_t> ids_map;
 	std::vector<acl::rule_info_t> dispatcher;

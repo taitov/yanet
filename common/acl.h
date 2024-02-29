@@ -306,8 +306,19 @@ using network_ipv6_source = std::vector<acl::tree_chunk_8bit_t>;
 using network_ipv6_destination_ht = std::vector<std::tuple<ipv6_address_t, tAclGroupId>>;
 using network_ipv6_destination = std::vector<acl::tree_chunk_8bit_t>;
 using network_table = std::tuple<uint32_t, std::vector<tAclGroupId>>;
+
+using transport_layers = std::vector<std::tuple<std::vector<acl::ranges_uint8_t>, ///< protocol
+                                                std::vector<acl::ranges_uint16_t>, ///< tcp.source
+                                                std::vector<acl::ranges_uint16_t>, ///< tcp.destination
+                                                std::vector<acl::ranges_uint8_t>, ///< tcp.flags
+                                                std::vector<acl::ranges_uint16_t>, ///< udp.source
+                                                std::vector<acl::ranges_uint16_t>, ///< udp.destination
+                                                std::vector<acl::ranges_uint16_t>, ///< icmp.type_code
+                                                std::vector<acl::ranges_uint16_t>>>; ///< icmp.identifier
+
 using transport_table = std::vector<std::tuple<acl::transport_key_t, tAclGroupId>>;
 using total_table = std::vector<std::tuple<acl::total_key_t, tAclGroupId>>;
+using values = std::vector<acl::value_t>;
 
 using request = std::tuple<network_ipv4_source,
                            network_ipv4_destination,
@@ -315,8 +326,10 @@ using request = std::tuple<network_ipv4_source,
                            network_ipv6_destination_ht,
                            network_ipv6_destination,
                            network_table,
+                           transport_layers,
                            transport_table,
-                           total_table>;
+                           total_table,
+                           values>;
 
 using response = eResult;
 

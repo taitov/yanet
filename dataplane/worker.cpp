@@ -1446,7 +1446,7 @@ inline void cWorker::acl_ingress_handle4()
 		const auto& network_value = value_acl.networks[mbuf_i];
 		auto& transport_key = key_acl.transports[mbuf_i];
 
-		const auto& transport_layer = acl.transport_layers[network_value & acl.transport_layers_mask];
+		const auto& transport_layer = base.acl_transport_layers[network_value & acl.transport_layers_mask];
 
 		transport_key.network_id = network_value;
 		transport_key.protocol = transport_layer.protocol.array[metadata->transport_headerType];
@@ -1538,7 +1538,7 @@ inline void cWorker::acl_ingress_handle4()
 			total_value = 0; ///< default
 		}
 
-		const auto& value = acl.values[total_value];
+		const auto& value = base.acl_values[total_value];
 
 		if (value.flow.type == common::globalBase::eFlowType::drop)
 		{
@@ -1637,7 +1637,7 @@ inline void cWorker::acl_ingress_handle6()
 		const auto& network_value = value_acl.networks[mbuf_i];
 		auto& transport_key = key_acl.transports[mbuf_i];
 
-		const auto& transport_layer = acl.transport_layers[network_value & acl.transport_layers_mask];
+		const auto& transport_layer = base.acl_transport_layers[network_value & acl.transport_layers_mask];
 
 		transport_key.network_id = network_value;
 		transport_key.protocol = transport_layer.protocol.array[metadata->transport_headerType];
@@ -1729,7 +1729,7 @@ inline void cWorker::acl_ingress_handle6()
 			total_value = 0; ///< default
 		}
 
-		const auto& value = acl.values[total_value];
+		const auto& value = base.acl_values[total_value];
 
 		if (value.flow.type == common::globalBase::eFlowType::drop)
 		{
@@ -5157,7 +5157,7 @@ inline void cWorker::acl_egress_handle4()
 		const auto& network_value = value_acl.networks[mbuf_i];
 		auto& transport_key = key_acl.transports[mbuf_i];
 
-		const auto& transport_layer = acl.transport_layers[network_value & acl.transport_layers_mask];
+		const auto& transport_layer = base.acl_transport_layers[network_value & acl.transport_layers_mask];
 
 		transport_key.network_id = network_value;
 		transport_key.protocol = transport_layer.protocol.array[metadata->transport_headerType];
@@ -5249,7 +5249,7 @@ inline void cWorker::acl_egress_handle4()
 			total_value = 0; ///< default
 		}
 
-		const auto& value = acl.values[total_value];
+		const auto& value = base.acl_values[total_value];
 
 		if (value.flow.type == common::globalBase::eFlowType::drop)
 		{
@@ -5341,7 +5341,7 @@ inline void cWorker::acl_egress_handle6()
 		const auto& network_value = value_acl.networks[mbuf_i];
 		auto& transport_key = key_acl.transports[mbuf_i];
 
-		const auto& transport_layer = acl.transport_layers[network_value & acl.transport_layers_mask];
+		const auto& transport_layer = base.acl_transport_layers[network_value & acl.transport_layers_mask];
 
 		transport_key.network_id = network_value;
 		transport_key.protocol = transport_layer.protocol.array[metadata->transport_headerType];
@@ -5433,7 +5433,7 @@ inline void cWorker::acl_egress_handle6()
 			total_value = 0; ///< default
 		}
 
-		const auto& value = acl.values[total_value];
+		const auto& value = base.acl_values[total_value];
 
 		if (value.flow.type == common::globalBase::eFlowType::drop)
 		{

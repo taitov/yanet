@@ -12,8 +12,10 @@ base::base(memory_manager* memory_manager,
         network_ipv6_destination_ht("acl.network.v6.destination.ht", memory_manager, socket_id),
         network_ipv6_destination("acl.network.v6.destination.lpm", memory_manager, socket_id),
         network_table("acl.network.ht", memory_manager, socket_id),
+        transport_layers("acl.transport.layers", memory_manager, socket_id),
         transport_table("acl.transport.ht", memory_manager, socket_id),
-        total_table("acl.total.ht", memory_manager, socket_id)
+        total_table("acl.total.ht", memory_manager, socket_id),
+        values("acl.values", memory_manager, socket_id)
 {
 }
 
@@ -56,8 +58,10 @@ void module::update_worker_base(const std::vector<std::tuple<tSocketId, dataplan
 		worker_base->acl_network_ipv6_destination_ht = base.network_ipv6_destination_ht.pointer;
 		worker_base->acl_network_ipv6_destination = base.network_ipv6_destination.pointer;
 		worker_base->acl_network_table = base.network_table.pointer;
+		worker_base->acl_transport_layers = base.transport_layers.pointer;
 		worker_base->acl_transport_table = base.transport_table.pointer;
 		worker_base->acl_total_table = base.total_table.pointer;
+		worker_base->acl_values = base.values.pointer;
 	}
 }
 
@@ -76,8 +80,10 @@ void module::report(nlohmann::json& json)
 		base.network_ipv6_destination_ht.report(json["acl"]["network"]["ipv6"]["destination_ht"]);
 		base.network_ipv6_destination.report(json["acl"]["network"]["ipv6"]["destination"]);
 		base.network_table.report(json["acl"]["network_table"]);
+		base.transport_layers.report(json["acl"]["transport_layers"]);
 		base.transport_table.report(json["acl"]["transport_table"]);
 		base.total_table.report(json["acl"]["total_table"]);
+		base.values.report(json["acl"]["values"]);
 	}
 }
 
@@ -96,8 +102,10 @@ void module::limits(common::idp::limits::response& response)
 		base.network_ipv6_destination_ht.limits(response);
 		base.network_ipv6_destination.limits(response);
 		base.network_table.limits(response);
+		base.transport_layers.limits(response);
 		base.transport_table.limits(response);
 		base.total_table.limits(response);
+		base.values.limits(response);
 	}
 }
 
@@ -141,8 +149,10 @@ void module::update_after(const common::idp::update::request& request)
 		base.network_ipv6_destination_ht.clear();
 		base.network_ipv6_destination.clear();
 		base.network_table.clear();
+		base.transport_layers.clear();
 		base.transport_table.clear();
 		base.total_table.clear();
+		base.values.clear();
 	}
 
 	generations.next_unlock();
@@ -157,8 +167,10 @@ eResult module::acl_update(const common::acl::idp::request& request_acl)
 	             request_network_ipv6_destination_ht,
 	             request_network_ipv6_destination,
 	             request_network_table,
+	             request_transport_layers,
 	             request_transport_table,
-	             request_total_table] = request_acl;
+	             request_total_table,
+	             request_values] = request_acl;
 
 	auto& generation = generations.next();
 	for (const auto socket_id : dataplane->get_socket_ids())
@@ -209,6 +221,95 @@ eResult module::acl_update(const common::acl::idp::request& request_acl)
 			return result;
 		}
 
+		/// update transport_layers
+		{
+			result = base.transport_layers.create(request_transport_layers.size());
+			if (result != eResult::success)
+			{
+				return result;
+			}
+
+			for (unsigned int layer_id = 0;
+			     layer_id < request_transport_layers.size();
+			     layer_id++)
+			{
+				auto& transport_layer = base.transport_layers[layer_id];
+
+				const auto& [protocol,
+				             tcp_source,
+				             tcp_destination,
+				             tcp_flags,
+				             udp_source,
+				             udp_destination,
+				             icmp_type_code,
+				             icmp_identifier] = request_transport_layers[layer_id];
+
+				flat<uint8_t>::updater updater_protocol; ///< @todo
+				result = transport_layer.protocol.update(updater_protocol, protocol);
+				if (result != eResult::success)
+				{
+					YANET_LOG_ERROR("acl.transport_layer.protocol.update(): %s\n", result_to_c_str(result));
+					return result;
+				}
+
+				flat<uint16_t>::updater updater_tcp_source; ///< @todo
+				result = transport_layer.tcp.source.update(updater_tcp_source, tcp_source);
+				if (result != eResult::success)
+				{
+					YANET_LOG_ERROR("acl.transport_layer.tcp.source.update(): %s\n", result_to_c_str(result));
+					return result;
+				}
+
+				flat<uint16_t>::updater updater_tcp_destination; ///< @todo
+				result = transport_layer.tcp.destination.update(updater_tcp_destination, tcp_destination);
+				if (result != eResult::success)
+				{
+					YANET_LOG_ERROR("acl.transport_layer.tcp.destination.update(): %s\n", result_to_c_str(result));
+					return result;
+				}
+
+				flat<uint8_t>::updater updater_tcp_flags; ///< @todo
+				result = transport_layer.tcp.flags.update(updater_tcp_flags, tcp_flags);
+				if (result != eResult::success)
+				{
+					YANET_LOG_ERROR("acl.transport_layer.tcp.flags.update(): %s\n", result_to_c_str(result));
+					return result;
+				}
+
+				flat<uint16_t>::updater updater_udp_source; ///< @todo
+				result = transport_layer.udp.source.update(updater_udp_source, udp_source);
+				if (result != eResult::success)
+				{
+					YANET_LOG_ERROR("acl.transport_layer.udp.source.update(): %s\n", result_to_c_str(result));
+					return result;
+				}
+
+				flat<uint16_t>::updater updater_udp_destination; ///< @todo
+				result = transport_layer.udp.destination.update(updater_udp_destination, udp_destination);
+				if (result != eResult::success)
+				{
+					YANET_LOG_ERROR("acl.transport_layer.udp.destination.update(): %s\n", result_to_c_str(result));
+					return result;
+				}
+
+				flat<uint16_t>::updater updater_icmp_type_code; ///< @todo
+				result = transport_layer.icmp.type_code.update(updater_icmp_type_code, icmp_type_code);
+				if (result != eResult::success)
+				{
+					YANET_LOG_ERROR("acl.transport_layer.icmp.type_code.update(): %s\n", result_to_c_str(result));
+					return result;
+				}
+
+				flat<uint16_t>::updater updater_icmp_identifier; ///< @todo
+				result = transport_layer.icmp.identifier.update(updater_icmp_identifier, icmp_identifier);
+				if (result != eResult::success)
+				{
+					YANET_LOG_ERROR("acl.transport_layer.icmp.identifier.update(): %s\n", result_to_c_str(result));
+					return result;
+				}
+			}
+		}
+
 		result = base.transport_table.update(request_transport_table);
 		if (result != eResult::success)
 		{
@@ -219,6 +320,17 @@ eResult module::acl_update(const common::acl::idp::request& request_acl)
 		if (result != eResult::success)
 		{
 			return result;
+		}
+
+		/// values
+		{
+			result = base.values.create(request_values.size());
+			if (result != eResult::success)
+			{
+				return result;
+			}
+
+			std::copy(request_values.begin(), request_values.end(), base.values.pointer);
 		}
 	}
 

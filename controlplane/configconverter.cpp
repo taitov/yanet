@@ -1886,7 +1886,6 @@ void config_converter_t::buildAcl()
 	}
 
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_network_flags, std::move(result.acl_network_flags));
-	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_transport_layers, std::move(result.acl_transport_layers));
 
 	acl_request = {std::move(result.acl_network_ipv4_source),
 	               std::move(result.acl_network_ipv4_destination),
@@ -1894,10 +1893,11 @@ void config_converter_t::buildAcl()
 	               std::move(result.acl_network_ipv6_destination_ht),
 	               std::move(result.acl_network_ipv6_destination),
 	               std::move(result.acl_network_table),
+	               std::move(result.acl_transport_layers),
 	               std::move(result.acl_transport_tables[0]),
-	               std::move(result.acl_total_table)};
+	               std::move(result.acl_total_table),
+	               std::move(result.acl_values)};
 
-	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::acl_values, std::move(result.acl_values));
 	globalbase.emplace_back(common::idp::updateGlobalBase::requestType::dump_tags_ids, std::move(result.dump_id_to_tag));
 
 	common::idp::updateGlobalBase::fwstate_synchronization_update::request fwstate_sync_request;

@@ -144,14 +144,6 @@ eResult generation::update(const common::idp::updateGlobalBase::request& request
 		{
 			result = acl_network_flags(std::get<common::idp::updateGlobalBase::acl_network_flags::request>(data));
 		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_transport_layers)
-		{
-			result = acl_transport_layers(std::get<common::idp::updateGlobalBase::acl_transport_layers::request>(data));
-		}
-		else if (type == common::idp::updateGlobalBase::requestType::acl_values)
-		{
-			result = acl_values(std::get<common::idp::updateGlobalBase::acl_values::request>(data));
-		}
 		else if (type == common::idp::updateGlobalBase::requestType::dump_tags_ids)
 		{
 			result = dump_tags_ids(std::get<common::idp::updateGlobalBase::dump_tags_ids::request>(data));
@@ -386,7 +378,6 @@ eResult generation::clear()
 	sampler_enabled = 0;
 	serial = 0;
 
-	acl.values[0] = {};
 	tun64mappingsTable.clear();
 
 	for (unsigned int fw_state_sync_config_id = 0;
@@ -1834,116 +1825,6 @@ eResult generation::acl_network_flags(const common::idp::updateGlobalBase::acl_n
 	}
 
 	return result;
-}
-
-eResult generation::acl_transport_layers(const common::idp::updateGlobalBase::acl_transport_layers::request& request)
-{
-	eResult result = eResult::success;
-
-	if (request.size() > dataPlane->getConfigValue(eConfigType::acl_transport_layers_size))
-	{
-		YANET_LOG_ERROR("acl.transport_layers: invalid layers size: %lu > %lu\n",
-		                request.size(),
-		                dataPlane->getConfigValue(eConfigType::acl_transport_layers_size));
-		return eResult::invalidCount;
-	}
-
-	for (unsigned int layer_id = 0;
-	     layer_id < request.size();
-	     layer_id++)
-	{
-		auto& transport_layer = acl.transport_layers[layer_id];
-
-		const auto& [protocol,
-		             tcp_source,
-		             tcp_destination,
-		             tcp_flags,
-		             udp_source,
-		             udp_destination,
-		             icmp_type_code,
-		             icmp_identifier] = request[layer_id];
-
-		flat<uint8_t>::updater updater_protocol; ///< @todo
-		result = transport_layer.protocol.update(updater_protocol, protocol);
-		if (result != eResult::success)
-		{
-			YANET_LOG_ERROR("acl.transport_layer.protocol.update(): %s\n", result_to_c_str(result));
-			return result;
-		}
-
-		flat<uint16_t>::updater updater_tcp_source; ///< @todo
-		result = transport_layer.tcp.source.update(updater_tcp_source, tcp_source);
-		if (result != eResult::success)
-		{
-			YANET_LOG_ERROR("acl.transport_layer.tcp.source.update(): %s\n", result_to_c_str(result));
-			return result;
-		}
-
-		flat<uint16_t>::updater updater_tcp_destination; ///< @todo
-		result = transport_layer.tcp.destination.update(updater_tcp_destination, tcp_destination);
-		if (result != eResult::success)
-		{
-			YANET_LOG_ERROR("acl.transport_layer.tcp.destination.update(): %s\n", result_to_c_str(result));
-			return result;
-		}
-
-		flat<uint8_t>::updater updater_tcp_flags; ///< @todo
-		result = transport_layer.tcp.flags.update(updater_tcp_flags, tcp_flags);
-		if (result != eResult::success)
-		{
-			YANET_LOG_ERROR("acl.transport_layer.tcp.flags.update(): %s\n", result_to_c_str(result));
-			return result;
-		}
-
-		flat<uint16_t>::updater updater_udp_source; ///< @todo
-		result = transport_layer.udp.source.update(updater_udp_source, udp_source);
-		if (result != eResult::success)
-		{
-			YANET_LOG_ERROR("acl.transport_layer.udp.source.update(): %s\n", result_to_c_str(result));
-			return result;
-		}
-
-		flat<uint16_t>::updater updater_udp_destination; ///< @todo
-		result = transport_layer.udp.destination.update(updater_udp_destination, udp_destination);
-		if (result != eResult::success)
-		{
-			YANET_LOG_ERROR("acl.transport_layer.udp.destination.update(): %s\n", result_to_c_str(result));
-			return result;
-		}
-
-		flat<uint16_t>::updater updater_icmp_type_code; ///< @todo
-		result = transport_layer.icmp.type_code.update(updater_icmp_type_code, icmp_type_code);
-		if (result != eResult::success)
-		{
-			YANET_LOG_ERROR("acl.transport_layer.icmp.type_code.update(): %s\n", result_to_c_str(result));
-			return result;
-		}
-
-		flat<uint16_t>::updater updater_icmp_identifier; ///< @todo
-		result = transport_layer.icmp.identifier.update(updater_icmp_identifier, icmp_identifier);
-		if (result != eResult::success)
-		{
-			YANET_LOG_ERROR("acl.transport_layer.icmp.identifier.update(): %s\n", result_to_c_str(result));
-			return result;
-		}
-	}
-
-	return result;
-}
-
-eResult generation::acl_values(const common::idp::updateGlobalBase::acl_values::request& request)
-{
-	if (request.size() > dataPlane->getConfigValue(eConfigType::acl_values_size))
-	{
-		YANET_LOG_ERROR("acl.values: %lu > %lu\n",
-		                request.size(),
-		                dataPlane->getConfigValue(eConfigType::acl_values_size));
-		return eResult::isFull;
-	}
-
-	std::copy(request.begin(), request.end(), acl.values);
-
-	return eResult::success;
 }
 
 eResult generation::dump_tags_ids(const common::idp::updateGlobalBase::dump_tags_ids::request& request)

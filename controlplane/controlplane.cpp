@@ -452,11 +452,7 @@ common::icp::acl_lookup::response cControlPlane::acl_lookup(const common::icp::a
 		acls.swap(acls_next);
 	}
 
-	const auto& [dataplane_physicalports, dataplane_workers, dataplane_values] = dataPlaneConfig;
-	(void)dataplane_physicalports;
-	(void)dataplane_workers;
-
-	auto ids = acl::lookup(dataplane_values[(unsigned int)common::idp::getConfig::value_type::acl_transport_layers_size],
+	auto ids = acl::lookup(2048, ///< @todo: get available count from dataplane
 	                       acls,
 	                       iface_map,
 	                       module,

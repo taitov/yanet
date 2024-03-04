@@ -67,7 +67,7 @@ public:
 	void value_compile();
 
 public:
-	unsigned int transport_layers_size;
+	unsigned int transport_layers_size_max;
 	unsigned int transport_layers_shift;
 
 	std::vector<compiler::rule_t> rules;

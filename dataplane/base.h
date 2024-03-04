@@ -89,6 +89,8 @@ public:
 	        acl_network_ipv6_destination_ht(nullptr),
 	        acl_network_ipv6_destination(nullptr),
 	        acl_network_table(nullptr),
+	        acl_transport_layers(nullptr),
+	        acl_transport_layers_mask(0),
 	        acl_transport_table(nullptr),
 	        acl_total_table(nullptr)
 	{
@@ -103,6 +105,7 @@ public:
 	const dataplane::acl::network_ipv6_destination::object_type* acl_network_ipv6_destination;
 	const dataplane::acl::network_table::object_type* acl_network_table;
 	const dataplane::acl::transport_layers::object_type* acl_transport_layers;
+	uint32_t acl_transport_layers_mask;
 	const dataplane::acl::transport_table::object_type* acl_transport_table;
 	const dataplane::acl::total_table::object_type* acl_total_table;
 	const dataplane::acl::values::object_type* acl_values;

@@ -59,6 +59,7 @@ void module::update_worker_base(const std::vector<std::tuple<tSocketId, dataplan
 		worker_base->acl_network_ipv6_destination = base.network_ipv6_destination.pointer;
 		worker_base->acl_network_table = base.network_table.pointer;
 		worker_base->acl_transport_layers = base.transport_layers.pointer;
+		worker_base->acl_transport_layers_mask = base.transport_layers_mask;
 		worker_base->acl_transport_table = base.transport_table.pointer;
 		worker_base->acl_total_table = base.total_table.pointer;
 		worker_base->acl_values = base.values.pointer;
@@ -308,6 +309,8 @@ eResult module::acl_update(const common::acl::idp::request& request_acl)
 					return result;
 				}
 			}
+
+			base.transport_layers_mask = upper_power_of_two(request_transport_layers.size()) - 1;
 		}
 
 		result = base.transport_table.update(request_transport_table);

@@ -63,6 +63,7 @@ public:
 	acl::network_ipv6_destination network_ipv6_destination;
 	acl::network_table network_table;
 	acl::transport_layers transport_layers;
+	uint32_t transport_layers_mask;
 	acl::transport_table transport_table;
 	acl::total_table total_table;
 	acl::values values;

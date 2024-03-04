@@ -47,7 +47,6 @@ enum class eConfigType
 	sample_gc_step,
 	acl_states4_ht_size,
 	acl_states6_ht_size,
-	acl_transport_layers_size,
 	acl_tcp_syn_ack_timeout,
 	acl_tcp_syn_timeout,
 	acl_tcp_fin_timeout,

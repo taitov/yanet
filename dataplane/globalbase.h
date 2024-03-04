@@ -190,7 +190,6 @@ public: ///< @todo
 	struct
 	{
 		flat<uint8_t> network_flags;
-		uint32_t transport_layers_mask;
 	} acl;
 
 	YADECAP_CACHE_ALIGNED(align5);

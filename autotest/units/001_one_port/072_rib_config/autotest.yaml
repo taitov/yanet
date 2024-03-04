@@ -7,3 +7,27 @@ steps:
   - port: kni0
     send: 002-send.pcap
     expect: 002-expect.pcap
+
+- cli_check: |
+    rib
+    vrf      priority  protocol  peer  table_name  prefixes  paths  eor
+    -------  --------  --------  ----  ----------  --------  -----  ----
+    default  10000     config    ::                2         2      true
+    default  10000     static    ::                1         1      true
+
+- reload: controlplane.2.conf
+
+- cli_check: |
+    rib
+    vrf      priority  protocol  peer  table_name  prefixes  paths  eor
+    -------  --------  --------  ----  ----------  --------  -----  ----
+    default  10000     config    ::                4         4      true
+    default  10000     static    ::                1         1      true
+
+- reload: controlplane.3.conf
+
+- cli_check: |
+    rib
+    vrf      priority  protocol  peer  table_name  prefixes  paths  eor
+    -------  --------  --------  ----  ----------  --------  -----  ----
+    default  10000     static    ::                1         1      true

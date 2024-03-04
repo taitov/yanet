@@ -82,9 +82,21 @@ void rib_t::reload(const controlplane::base_t& base_prev,
 
 	common::icp::rib_update::request request;
 
+	for (const auto& [vrf_name, rib_items] : base_prev.rib)
 	{
-		common::icp::rib_update::clear clear{"config", std::nullopt};
-		request.emplace_back(std::move(clear));
+		common::icp::rib_update::remove request_remove = {"config",
+		                                                  vrf_name,
+		                                                  YANET_RIB_PRIORITY_DEFAULT,
+		                                                  {}};
+
+		for (const auto& rib_item : rib_items)
+		{
+			auto& prefixes = std::get<3>(request_remove)[ip_address_t("::")]
+			                                            [""];
+			prefixes.emplace_back(rib_item.prefix, "", std::vector<uint32_t>());
+		}
+
+		request.emplace_back(std::move(request_remove));
 	}
 
 	for (const auto& [vrf_name, rib_items] : base_next.rib)

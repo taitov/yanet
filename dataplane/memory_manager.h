@@ -98,6 +98,67 @@ public:
 	void debug(tSocketId socket_id);
 	bool check_memory_limit(const std::string& name, const uint64_t size);
 
+	template<typename type>
+	std::optional<uint64_t> get_available_count_static_array(const char* name,
+	                                                         const tSocketId socket_id,
+	                                                         const common::memory_manager::memory_group& root_memory_group)
+	{
+		std::map<std::string, ///< object_name
+		         common::uint64> ///< current
+		        currents;
+
+		for (const auto& [pointer, memory_pointer] : pointers)
+		{
+			(void)pointer;
+
+			uint64_t object_size = memory_pointer.size;
+			if (memory_pointer.name == name)
+			{
+				object_size = 0;
+			}
+
+			currents[memory_pointer.name] = std::max(currents[memory_pointer.name].value,
+			                                         object_size);
+		}
+
+		std::optional<uint64_t> result;
+		root_memory_group.for_each([&](const auto& memory_group,
+		                               const std::set<std::string>& object_names) {
+			bool check = false;
+			uint64_t group_total = 0;
+			for (const auto& object_name : object_names)
+			{
+				group_total += currents[object_name];
+
+				if (object_name == name)
+				{
+					check = true;
+				}
+			}
+
+			if (check && memory_group.limit)
+			{
+				if (group_total <= memory_group.limit)
+				{
+					uint64_t count = (memory_group.limit - group_total) / sizeof(type);
+					if ((!result) || count < result)
+					{
+						result = count;
+					}
+				}
+			}
+		});
+
+		return result;
+	}
+
+	template<typename type>
+	std::optional<uint64_t> get_available_count_static_array(const char* name,
+	                                                         const tSocketId socket_id)
+	{
+		return get_available_count_static_array<type>(name, socket_id, root_memory_group);
+	}
+
 protected:
 	cDataPlane* dataplane;
 

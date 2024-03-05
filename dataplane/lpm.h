@@ -20,18 +20,66 @@ namespace dataplane
 
 constexpr inline uint32_t lpmValueIdInvalid = (0xFFFFFFFF);
 
-template<uint32_t TExtendedSize>
 class lpm4_24bit_8bit_atomic
 {
 public:
-	lpm4_24bit_8bit_atomic()
+	constexpr static uint64_t extended_chunks_size_min = 32;
+
+	union tEntry
 	{
-		extendedChunksCount = 0;
-		maxUsedChunkId = 0;
-		freeChunkCache.flags = 0;
+		struct
+		{
+			uint8_t flags : 8;
+			union
+			{
+				uint32_t valueId : 24;
+				uint32_t extendedChunkId : 24;
+			} __attribute__((__packed__));
+		} __attribute__((__packed__));
+
+		uint32_t atomic;
+	} __attribute__((__packed__));
+
+	static_assert(sizeof(tEntry) == 4, "invalid size of tEntry");
+
+	struct stats_t
+	{
+		uint64_t extended_chunks_count;
+		uint64_t extended_chunks_size;
+		uint32_t max_used_chunk_id;
+		tEntry free_chunk_cache;
+	};
+
+	static uint64_t calculate_sizeof(const uint64_t extended_chunks_size)
+	{
+		if (!extended_chunks_size)
+		{
+			YANET_LOG_ERROR("wrong extended_chunks_size: %lu\n", extended_chunks_size);
+			return 0;
+		}
+
+		return sizeof(lpm4_24bit_8bit_atomic) + extended_chunks_size * sizeof(tChunk8);
 	}
 
-	eResult insert(const uint32_t& ipAddress,
+public:
+	lpm4_24bit_8bit_atomic()
+	{
+	}
+
+	lpm4_24bit_8bit_atomic(const stats_t& stats,
+	                       const lpm4_24bit_8bit_atomic& second) :
+	        rootChunk(second.rootChunk)
+	{
+		for (uint64_t chunk_i = 0;
+		     chunk_i < stats.extended_chunks_count;
+		     chunk_i++)
+		{
+			extendedChunks[chunk_i] = second.extendedChunks[chunk_i];
+		}
+	}
+
+	eResult insert(stats_t& stats,
+	               const uint32_t& ipAddress,
 	               const uint8_t& mask,
 	               const uint32_t& valueId,
 	               bool* needWait = nullptr)
@@ -48,7 +96,8 @@ public:
 			*needWait = false;
 		}
 
-		return insertStep1(ipAddress,
+		return insertStep1(stats,
+		                   ipAddress,
 		                   mask,
 		                   valueId,
 		                   needWait,
@@ -56,7 +105,8 @@ public:
 		                   rootChunk);
 	}
 
-	eResult remove(const uint32_t& ipAddress,
+	eResult remove(stats_t& stats,
+	               const uint32_t& ipAddress,
 	               const uint8_t& mask,
 	               bool* needWait = nullptr)
 	{
@@ -71,19 +121,20 @@ public:
 			*needWait = false;
 		}
 
-		return removeStep1(ipAddress,
+		return removeStep1(stats,
+		                   ipAddress,
 		                   mask,
 		                   needWait,
 		                   0,
 		                   rootChunk);
 	}
 
-	void clear()
+	void clear(stats_t& stats)
 	{
 		memset(&rootChunk.entries[0], 0, sizeof(rootChunk.entries));
-		extendedChunksCount = 0;
-		maxUsedChunkId = 0;
-		freeChunkCache.flags = 0;
+		stats.extended_chunks_count = 0;
+		stats.max_used_chunk_id = 0;
+		stats.free_chunk_cache.flags = 0;
 	}
 
 	inline void lookup(const uint32_t* ipAddresses,
@@ -162,41 +213,10 @@ public:
 		return false;
 	}
 
-	struct tStats
-	{
-		uint64_t extendedChunksCount;
-	};
-
-	tStats getStats() const
-	{
-		tStats result;
-		memset(&result, 0, sizeof(result));
-		result.extendedChunksCount = extendedChunksCount;
-
-		return result;
-	}
-
 protected:
 	constexpr static uint8_t flagExtended = 1 << 0;
 	constexpr static uint8_t flagValid = 1 << 1;
 	constexpr static uint8_t flagExtendedChunkOccupied = 1 << 7;
-
-	union tEntry
-	{
-		struct
-		{
-			uint8_t flags : 8;
-			union
-			{
-				uint32_t valueId : 24;
-				uint32_t extendedChunkId : 24;
-			} __attribute__((__packed__));
-		} __attribute__((__packed__));
-
-		uint32_t atomic;
-	} __attribute__((__packed__));
-
-	static_assert(sizeof(tEntry) == 4, "invalid size of tEntry");
 
 	struct tChunk8
 	{
@@ -219,47 +239,43 @@ protected:
 	} __attribute__((__packed__));
 
 protected:
-	uint32_t extendedChunksCount;
-	uint32_t maxUsedChunkId;
-	tEntry freeChunkCache;
-
-	bool newExtendedChunk(uint32_t& extendedChunkId)
+	bool newExtendedChunk(stats_t& stats, uint32_t& extendedChunkId)
 	{
-		if (freeChunkCache.flags & flagExtended)
+		if (stats.free_chunk_cache.flags & flagExtended)
 		{
-			extendedChunkId = freeChunkCache.extendedChunkId;
+			extendedChunkId = stats.free_chunk_cache.extendedChunkId;
 			tChunk8& extendedChunk = extendedChunks[extendedChunkId];
-			freeChunkCache.flags = extendedChunk.entries[0].flags;
-			freeChunkCache.extendedChunkId = extendedChunk.entries[0].extendedChunkId;
+			stats.free_chunk_cache.flags = extendedChunk.entries[0].flags;
+			stats.free_chunk_cache.extendedChunkId = extendedChunk.entries[0].extendedChunkId;
 			memset(&extendedChunk.entries[0], 0, sizeof(extendedChunk.entries));
 			extendedChunk.entries[0].flags |= flagExtendedChunkOccupied;
-			++extendedChunksCount;
+			++stats.extended_chunks_count;
 			return true;
 		}
-		else if (maxUsedChunkId < TExtendedSize)
+		else if (stats.max_used_chunk_id < stats.extended_chunks_size)
 		{
-			extendedChunkId = maxUsedChunkId++;
+			extendedChunkId = stats.max_used_chunk_id++;
 
 			tChunk8& extendedChunk = extendedChunks[extendedChunkId];
 			memset(&extendedChunk.entries[0], 0, sizeof(extendedChunk.entries));
 			extendedChunk.entries[0].flags |= flagExtendedChunkOccupied;
-			++extendedChunksCount;
+			++stats.extended_chunks_count;
 			return true;
 		}
 
 		return false;
 	}
 
-	void freeExtendedChunk(const uint32_t& extendedChunkId)
+	void freeExtendedChunk(stats_t& stats, const uint32_t& extendedChunkId)
 	{
 		tChunk8& extendedChunk = extendedChunks[extendedChunkId];
 
-		extendedChunk.entries[0].flags = freeChunkCache.flags;
-		extendedChunk.entries[0].extendedChunkId = freeChunkCache.extendedChunkId;
+		extendedChunk.entries[0].flags = stats.free_chunk_cache.flags;
+		extendedChunk.entries[0].extendedChunkId = stats.free_chunk_cache.extendedChunkId;
 
-		freeChunkCache.flags = flagExtended;
-		freeChunkCache.extendedChunkId = extendedChunkId;
-		--extendedChunksCount;
+		stats.free_chunk_cache.flags = flagExtended;
+		stats.free_chunk_cache.extendedChunkId = extendedChunkId;
+		--stats.extended_chunks_count;
 	}
 
 	static void updateEntry(tEntry& entry,
@@ -301,7 +317,8 @@ protected:
 		YADECAP_MEMORY_BARRIER_COMPILE;
 	}
 
-	eResult insertStep1(const uint32_t& ipAddress,
+	eResult insertStep1(stats_t& stats,
+	                    const uint32_t& ipAddress,
 	                    const uint8_t& mask,
 	                    const uint32_t& valueId,
 	                    bool* needWait,
@@ -347,7 +364,7 @@ protected:
 					            flagValid,
 					            valueId);
 
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 
 					if (needWait)
 					{
@@ -368,9 +385,8 @@ protected:
 				}
 
 				uint32_t extendedChunkId;
-				if (!newExtendedChunk(extendedChunkId))
+				if (!newExtendedChunk(stats, extendedChunkId))
 				{
-					YADECAP_LOG_WARNING("lpm4 is full\n");
 					return eResult::isFull;
 				}
 
@@ -385,7 +401,7 @@ protected:
 				                             extendedChunks[extendedChunkId]);
 				if (result != eResult::success)
 				{
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 					return result;
 				}
 
@@ -414,7 +430,7 @@ protected:
 					            flagValid,
 					            valueId);
 
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 
 					if (needWait)
 					{
@@ -459,7 +475,8 @@ protected:
 		return eResult::success;
 	}
 
-	eResult removeStep1(const uint32_t& ipAddress,
+	eResult removeStep1(stats_t& stats,
+	                    const uint32_t& ipAddress,
 	                    const uint8_t& mask,
 	                    bool* needWait,
 	                    const unsigned int& step,
@@ -502,7 +519,7 @@ protected:
 					            0,
 					            0);
 
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 
 					if (needWait)
 					{
@@ -517,9 +534,8 @@ protected:
 				/// valid
 
 				uint32_t extendedChunkId;
-				if (!newExtendedChunk(extendedChunkId))
+				if (!newExtendedChunk(stats, extendedChunkId))
 				{
-					YADECAP_LOG_WARNING("lpm4 is full\n");
 					return eResult::isFull;
 				}
 
@@ -533,7 +549,7 @@ protected:
 				                             extendedChunks[extendedChunkId]);
 				if (result != eResult::success)
 				{
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 					return result;
 				}
 
@@ -571,7 +587,7 @@ protected:
 					            0,
 					            0);
 
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 
 					if (needWait)
 					{
@@ -615,8 +631,8 @@ protected:
 
 protected:
 	tChunk24 rootChunk;
-	tChunk8 extendedChunks[TExtendedSize];
-} __rte_aligned(RTE_CACHE_LINE_SIZE);
+	tChunk8 extendedChunks[];
+};
 
 //
 
@@ -1922,7 +1938,7 @@ protected:
 class lpm4_24bit_8bit_id32_dynamic
 {
 public:
-	constexpr static uint64_t extended_chunks_size_min = 8;
+	constexpr static uint64_t extended_chunks_size_min = 32;
 
 	struct stats_t
 	{
@@ -2653,7 +2669,7 @@ protected:
 class lpm6_16x8bit_id32_dynamic
 {
 public:
-	constexpr static uint64_t extended_chunks_size_min = 8;
+	constexpr static uint64_t extended_chunks_size_min = 32;
 
 	struct stats_t
 	{

@@ -34,6 +34,7 @@
 #include "dataplane.h"
 #include "debug_latch.h"
 #include "globalbase.h"
+#include "lpm.h"
 #include "report.h"
 #include "sock_dev.h"
 #include "worker.h"
@@ -654,6 +655,11 @@ eResult cDataPlane::initGlobalBases()
 		                                                                             this,
 		                                                                             socket_id);
 		if (!globalbase)
+		{
+			return nullptr;
+		}
+
+		if (globalbase->init() != eResult::success)
 		{
 			return nullptr;
 		}

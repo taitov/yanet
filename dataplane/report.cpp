@@ -667,20 +667,14 @@ nlohmann::json cReport::convertGlobalBase(const dataplane::globalBase::generatio
 		json["interfaces"].emplace_back(jsonInterface);
 	}
 
-	{
-		auto stats = globalBase->route_lpm4.getStats();
-		json["route_lpm4"]["extendedChunksCount"] = stats.extendedChunksCount;
-	}
+	globalBase->updater.route_lpm4->report(json);
 
 	{
 		auto stats = globalBase->route_lpm6.getStats();
 		json["route_lpm6"]["extendedChunksCount"] = stats.extendedChunksCount;
 	}
 
-	{
-		auto stats = globalBase->route_tunnel_lpm4.getStats();
-		json["route_tunnel_lpm4"]["extendedChunksCount"] = stats.extendedChunksCount;
-	}
+	globalBase->updater.route_tunnel_lpm4->report(json);
 
 	{
 		auto stats = globalBase->route_tunnel_lpm6.getStats();

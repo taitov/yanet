@@ -38,7 +38,9 @@ atomic::~atomic()
 generation::generation(cDataPlane* dataPlane,
                        const tSocketId& socketId) :
         dataPlane(dataPlane),
-        socketId(socketId)
+        socketId(socketId),
+        route_lpm4(nullptr),
+        route_tunnel_lpm4(nullptr)
 {
 	std::fill(balancer_service_rings[0].ranges,
 	          balancer_service_rings[0].ranges + YANET_CONFIG_BALANCER_SERVICES_SIZE,
@@ -51,6 +53,39 @@ generation::generation(cDataPlane* dataPlane,
 
 generation::~generation()
 {
+}
+
+eResult generation::init()
+{
+	eResult result = eResult::success;
+
+	{
+		updater.route_lpm4 = std::make_unique<updater_lpm4_24bit_8bit>("route.v4.lpm",
+		                                                               &dataPlane->memory_manager,
+		                                                               socketId);
+		result = updater.route_lpm4->init();
+		if (result != eResult::success)
+		{
+			return result;
+		}
+
+		route_lpm4 = updater.route_lpm4->pointer;
+	}
+
+	{
+		updater.route_tunnel_lpm4 = std::make_unique<updater_lpm4_24bit_8bit>("route.tunnel.v4.lpm",
+		                                                                      &dataPlane->memory_manager,
+		                                                                      socketId);
+		result = updater.route_tunnel_lpm4->init();
+		if (result != eResult::success)
+		{
+			return result;
+		}
+
+		route_tunnel_lpm4 = updater.route_tunnel_lpm4->pointer;
+	}
+
+	return eResult::success;
 }
 
 eResult generation::update(const common::idp::updateGlobalBase::request& request)
@@ -1487,10 +1522,9 @@ eResult generation::route_lpm_update(const common::idp::updateGlobalBase::route_
 			{
 				if (prefix.is_ipv4())
 				{
-					result = route_lpm4.insert(prefix.get_ipv4().address(),
-					                           prefix.get_ipv4().mask(),
-					                           value_id,
-					                           nullptr);
+					result = updater.route_lpm4->insert(prefix.get_ipv4().address(),
+					                                    prefix.get_ipv4().mask(),
+					                                    value_id);
 				}
 				else
 				{
@@ -1512,9 +1546,8 @@ eResult generation::route_lpm_update(const common::idp::updateGlobalBase::route_
 			{
 				if (prefix.is_ipv4())
 				{
-					result = route_lpm4.remove(prefix.get_ipv4().address(),
-					                           prefix.get_ipv4().mask(),
-					                           nullptr);
+					result = updater.route_lpm4->remove(prefix.get_ipv4().address(),
+					                                    prefix.get_ipv4().mask());
 				}
 				else
 				{
@@ -1533,10 +1566,12 @@ eResult generation::route_lpm_update(const common::idp::updateGlobalBase::route_
 		{
 			YADECAP_LOG_DEBUG("route lpm clear\n");
 
-			route_lpm4.clear();
+			updater.route_lpm4->clear();
 			route_lpm6.clear();
 		}
 	}
+
+	route_lpm4 = updater.route_lpm4->pointer;
 
 	return result;
 }
@@ -1650,10 +1685,9 @@ eResult generation::route_tunnel_lpm_update(const common::idp::updateGlobalBase:
 			{
 				if (prefix.is_ipv4())
 				{
-					result = route_tunnel_lpm4.insert(prefix.get_ipv4().address(),
-					                                  prefix.get_ipv4().mask(),
-					                                  value_id,
-					                                  nullptr);
+					result = updater.route_tunnel_lpm4->insert(prefix.get_ipv4().address(),
+					                                           prefix.get_ipv4().mask(),
+					                                           value_id);
 				}
 				else
 				{
@@ -1675,9 +1709,8 @@ eResult generation::route_tunnel_lpm_update(const common::idp::updateGlobalBase:
 			{
 				if (prefix.is_ipv4())
 				{
-					result = route_tunnel_lpm4.remove(prefix.get_ipv4().address(),
-					                                  prefix.get_ipv4().mask(),
-					                                  nullptr);
+					result = updater.route_tunnel_lpm4->remove(prefix.get_ipv4().address(),
+					                                           prefix.get_ipv4().mask());
 				}
 				else
 				{
@@ -1696,10 +1729,12 @@ eResult generation::route_tunnel_lpm_update(const common::idp::updateGlobalBase:
 		{
 			YADECAP_LOG_DEBUG("route_tunnel lpm clear\n");
 
-			route_tunnel_lpm4.clear();
+			updater.route_tunnel_lpm4->clear();
 			route_tunnel_lpm6.clear();
 		}
 	}
+
+	route_tunnel_lpm4 = updater.route_tunnel_lpm4->pointer;
 
 	return result;
 }

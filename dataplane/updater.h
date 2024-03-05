@@ -55,7 +55,7 @@ public:
 	eResult update(const std::vector<common::acl::tree_chunk_8bit_t>& values)
 	{
 		stats.extended_chunks_size = std::max((uint64_t)object_type::extended_chunks_size_min,
-		                                      values.size() / 16);
+		                                      values.size() / 4);
 
 		for (;;)
 		{
@@ -220,11 +220,12 @@ public:
 	{
 	}
 
-	eResult update(const std::vector<std::tuple<key_t, uint32_t>>& values)
+	eResult update(const std::vector<std::tuple<key_t, uint32_t>>& values, bool retry = true)
 	{
 		stats.pairs_size = upper_power_of_two(std::max(object_type::pairs_size_min,
 		                                               (uint32_t)(4ull * values.size())));
 
+		eResult result = eResult::success;
 		for (;;)
 		{
 			pointer = memory_manager->create<object_type>(name.data(),
@@ -236,19 +237,22 @@ public:
 				return eResult::errorAllocatingMemory;
 			}
 
-			eResult result = pointer->fill(stats, values);
+			result = pointer->fill(stats, values);
 			if (result != eResult::success)
 			{
-				/// try again
-				memory_manager->destroy(pointer);
-				stats.pairs_size *= 2;
-				continue;
+				if (retry)
+				{
+					/// try again
+					memory_manager->destroy(pointer);
+					stats.pairs_size *= 2;
+					continue;
+				}
 			}
 
 			break;
 		}
 
-		return eResult::success;
+		return result;
 	}
 
 	void clear()

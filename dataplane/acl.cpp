@@ -203,10 +203,10 @@ eResult module::acl_update(const common::acl::idp::request& request_acl)
 				request_convert.emplace_back(ipv6_address_t::convert(address), group_id);
 			}
 
-			result = base.network_ipv6_destination_ht.update(request_convert);
+			result = base.network_ipv6_destination_ht.update(request_convert, false);
 			if (result != eResult::success)
 			{
-				return result;
+				YANET_LOG_DEBUG("network_ipv6_destination_ht: %s\n", common::result_to_c_str(result));
 			}
 		}
 

@@ -145,7 +145,9 @@ public: ///< @todo
 	struct
 	{
 		std::unique_ptr<updater_lpm4_24bit_8bit> route_lpm4;
+		std::unique_ptr<updater_lpm6_8x16bit> route_lpm6;
 		std::unique_ptr<updater_lpm4_24bit_8bit> route_tunnel_lpm4;
+		std::unique_ptr<updater_lpm6_8x16bit> route_tunnel_lpm6;
 	} updater;
 
 	/// variables above are not needed for cWorker::mainThread()
@@ -180,13 +182,13 @@ public: ///< @todo
 	YADECAP_CACHE_ALIGNED(align2);
 
 	lpm4_24bit_8bit_atomic* route_lpm4;
-	lpm6_8x16bit_atomic<CONFIG_YADECAP_LPM6_EXTENDED_SIZE> route_lpm6;
+	lpm6_8x16bit_atomic* route_lpm6;
 	route_value_t route_values[YANET_CONFIG_ROUTE_VALUES_SIZE];
 
 	YADECAP_CACHE_ALIGNED(align3);
 
 	lpm4_24bit_8bit_atomic* route_tunnel_lpm4;
-	lpm6_8x16bit_atomic<YANET_CONFIG_ROUTE_TUNNEL_LPM6_EXTENDED_SIZE> route_tunnel_lpm6;
+	lpm6_8x16bit_atomic* route_tunnel_lpm6;
 	uint8_t route_tunnel_weights[YANET_CONFIG_ROUTE_TUNNEL_WEIGHTS_SIZE];
 	route_tunnel_value_t route_tunnel_values[YANET_CONFIG_ROUTE_TUNNEL_VALUES_SIZE];
 	ipv4_address_t nat64stateful_pool[YANET_CONFIG_NAT64STATEFUL_POOL_SIZE];

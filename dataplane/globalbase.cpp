@@ -73,6 +73,19 @@ eResult generation::init()
 	}
 
 	{
+		updater.route_lpm6 = std::make_unique<updater_lpm6_8x16bit>("route.v6.lpm",
+		                                                            &dataPlane->memory_manager,
+		                                                            socketId);
+		result = updater.route_lpm6->init();
+		if (result != eResult::success)
+		{
+			return result;
+		}
+
+		route_lpm6 = updater.route_lpm6->pointer;
+	}
+
+	{
 		updater.route_tunnel_lpm4 = std::make_unique<updater_lpm4_24bit_8bit>("route.tunnel.v4.lpm",
 		                                                                      &dataPlane->memory_manager,
 		                                                                      socketId);
@@ -83,6 +96,19 @@ eResult generation::init()
 		}
 
 		route_tunnel_lpm4 = updater.route_tunnel_lpm4->pointer;
+	}
+
+	{
+		updater.route_tunnel_lpm6 = std::make_unique<updater_lpm6_8x16bit>("route.tunnel.v6.lpm",
+		                                                                   &dataPlane->memory_manager,
+		                                                                   socketId);
+		result = updater.route_tunnel_lpm6->init();
+		if (result != eResult::success)
+		{
+			return result;
+		}
+
+		route_tunnel_lpm6 = updater.route_tunnel_lpm6->pointer;
 	}
 
 	return eResult::success;
@@ -1528,10 +1554,9 @@ eResult generation::route_lpm_update(const common::idp::updateGlobalBase::route_
 				}
 				else
 				{
-					result = route_lpm6.insert(prefix.get_ipv6().address(),
-					                           prefix.get_ipv6().mask(),
-					                           value_id,
-					                           nullptr);
+					result = updater.route_lpm6->insert(prefix.get_ipv6().address(),
+					                                    prefix.get_ipv6().mask(),
+					                                    value_id);
 				}
 
 				if (result != eResult::success)
@@ -1551,9 +1576,8 @@ eResult generation::route_lpm_update(const common::idp::updateGlobalBase::route_
 				}
 				else
 				{
-					result = route_lpm6.remove(prefix.get_ipv6().address(),
-					                           prefix.get_ipv6().mask(),
-					                           nullptr);
+					result = updater.route_lpm6->remove(prefix.get_ipv6().address(),
+					                                    prefix.get_ipv6().mask());
 				}
 
 				if (result != eResult::success)
@@ -1567,7 +1591,7 @@ eResult generation::route_lpm_update(const common::idp::updateGlobalBase::route_
 			YADECAP_LOG_DEBUG("route lpm clear\n");
 
 			updater.route_lpm4->clear();
-			route_lpm6.clear();
+			updater.route_lpm6->clear();
 		}
 	}
 
@@ -1691,10 +1715,9 @@ eResult generation::route_tunnel_lpm_update(const common::idp::updateGlobalBase:
 				}
 				else
 				{
-					result = route_tunnel_lpm6.insert(prefix.get_ipv6().address(),
-					                                  prefix.get_ipv6().mask(),
-					                                  value_id,
-					                                  nullptr);
+					result = updater.route_tunnel_lpm6->insert(prefix.get_ipv6().address(),
+					                                           prefix.get_ipv6().mask(),
+					                                           value_id);
 				}
 
 				if (result != eResult::success)
@@ -1714,9 +1737,8 @@ eResult generation::route_tunnel_lpm_update(const common::idp::updateGlobalBase:
 				}
 				else
 				{
-					result = route_tunnel_lpm6.remove(prefix.get_ipv6().address(),
-					                                  prefix.get_ipv6().mask(),
-					                                  nullptr);
+					result = updater.route_tunnel_lpm6->remove(prefix.get_ipv6().address(),
+					                                           prefix.get_ipv6().mask());
 				}
 
 				if (result != eResult::success)
@@ -1730,7 +1752,7 @@ eResult generation::route_tunnel_lpm_update(const common::idp::updateGlobalBase:
 			YADECAP_LOG_DEBUG("route_tunnel lpm clear\n");
 
 			updater.route_tunnel_lpm4->clear();
-			route_tunnel_lpm6.clear();
+			updater.route_tunnel_lpm6->clear();
 		}
 	}
 

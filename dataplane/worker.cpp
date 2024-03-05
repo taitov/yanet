@@ -2343,7 +2343,7 @@ inline void cWorker::route_handle6()
 		calcHash(mbuf);
 	}
 
-	base.globalBase->route_lpm6.lookup(route_ipv6_keys, route_ipv6_values, route_stack6.mbufsCount);
+	base.globalBase->route_lpm6->lookup(route_ipv6_keys, route_ipv6_values, route_stack6.mbufsCount);
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < route_stack6.mbufsCount;
 	     mbuf_i++)
@@ -2675,7 +2675,7 @@ inline void cWorker::route_tunnel_handle6()
 		metadata->hash = rte_hash_crc(&metadata->flowLabel, 4, metadata->hash);
 	}
 
-	base.globalBase->route_tunnel_lpm6.lookup(route_ipv6_keys, route_ipv6_values, route_tunnel_stack6.mbufsCount);
+	base.globalBase->route_tunnel_lpm6->lookup(route_ipv6_keys, route_ipv6_values, route_tunnel_stack6.mbufsCount);
 	for (unsigned int mbuf_i = 0;
 	     mbuf_i < route_tunnel_stack6.mbufsCount;
 	     mbuf_i++)

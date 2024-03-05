@@ -820,7 +820,7 @@ common::idp::lpm6LookupAddress::response cControlPlane::lpm6LookupAddress(const 
 		const auto* globalBase = iter.second[dataPlane->currentGlobalBaseId];
 
 		uint32_t valueId;
-		if (globalBase->route_lpm6.lookup(request, &valueId))
+		if (globalBase->route_lpm6->lookup(request, &valueId))
 		{
 			response[socketId] = {true,
 			                      valueId,
@@ -889,18 +889,9 @@ common::idp::limits::response cControlPlane::limits()
 			const auto* globalBase = generations[dataPlane->currentGlobalBaseId];
 
 			globalBase->updater.route_lpm4->limits(response);
+			globalBase->updater.route_lpm6->limits(response);
 			globalBase->updater.route_tunnel_lpm4->limits(response);
-
-			limit_insert(response,
-			             "route.v6.lpm.extended_chunks",
-			             socket_id,
-			             globalBase->route_lpm6.getStats().extendedChunksCount,
-			             CONFIG_YADECAP_LPM6_EXTENDED_SIZE);
-			limit_insert(response,
-			             "route.tunnel.v6.lpm.extended_chunks",
-			             socket_id,
-			             globalBase->route_tunnel_lpm6.getStats().extendedChunksCount,
-			             YANET_CONFIG_ROUTE_TUNNEL_LPM6_EXTENDED_SIZE);
+			globalBase->updater.route_tunnel_lpm6->limits(response);
 
 			limit_insert(response,
 			             "tun64.mappings.ht.keys",

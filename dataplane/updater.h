@@ -134,7 +134,140 @@ public:
 
 	void clear()
 	{
-		pointer->clear(stats);
+		pointer->clear();
+		stats.extended_chunks_count = 0;
+		stats.max_used_chunk_id = 0;
+		stats.free_chunk_cache.flags = 0;
+	}
+
+	void limits(common::limit::limits& limits) const
+	{
+		limits.emplace_back(name + ".extended_chunks",
+		                    socket_id,
+		                    stats.extended_chunks_count,
+		                    stats.extended_chunks_size);
+	}
+
+	void report(nlohmann::json& report) const
+	{
+		report["pointer"] = to_hex(pointer);
+		report["extended_chunks_count"] = stats.extended_chunks_count;
+		report["extended_chunks_size"] = stats.extended_chunks_size;
+	}
+
+protected:
+	std::string name;
+	dataplane::memory_manager* memory_manager;
+	tSocketId socket_id;
+
+	object_type::stats_t stats;
+
+public:
+	object_type* pointer;
+};
+
+//
+
+class updater_lpm6_8x16bit
+{
+public:
+	using object_type = lpm6_8x16bit_atomic;
+
+	updater_lpm6_8x16bit(const char* name,
+	                     dataplane::memory_manager* memory_manager,
+	                     const tSocketId socket_id) :
+	        name(name),
+	        memory_manager(memory_manager),
+	        socket_id(socket_id),
+	        pointer(nullptr)
+	{
+		stats.extended_chunks_count = 0;
+		stats.extended_chunks_size = 0;
+		stats.max_used_chunk_id = 0;
+		stats.free_chunk_cache.flags = 0;
+	}
+
+	eResult init()
+	{
+		stats.extended_chunks_size = object_type::extended_chunks_size_min;
+
+		pointer = memory_manager->create<object_type>(name.data(),
+		                                              socket_id,
+		                                              object_type::calculate_sizeof(stats.extended_chunks_size));
+		if (pointer == nullptr)
+		{
+			return eResult::errorAllocatingMemory;
+		}
+
+		return eResult::success;
+	}
+
+	eResult realloc()
+	{
+		stats.extended_chunks_size *= 2;
+
+		{
+			auto* next_pointer = memory_manager->create<object_type>(name.data(),
+			                                                         socket_id,
+			                                                         object_type::calculate_sizeof(stats.extended_chunks_size),
+			                                                         stats,
+			                                                         *pointer);
+			if (next_pointer == nullptr)
+			{
+				return eResult::errorAllocatingMemory;
+			}
+
+			memory_manager->destroy(pointer);
+			pointer = next_pointer;
+		}
+
+		return eResult::success;
+	}
+
+	eResult insert(const std::array<uint8_t, 16>& ip_address,
+	               const uint8_t& mask,
+	               const uint32_t& value_id)
+	{
+		printf("XXX:INSERT\n");
+		if (pointer->insert(stats, ip_address, mask, value_id) == eResult::success)
+		{
+			return eResult::success;
+		}
+
+		/// realloc and try again
+		eResult result = realloc();
+		if (result != eResult::success)
+		{
+			return result;
+		}
+
+		return pointer->insert(stats, ip_address, mask, value_id);
+	}
+
+	eResult remove(const std::array<uint8_t, 16>& ip_address,
+	               const uint8_t& mask)
+	{
+		if (pointer->remove(stats, ip_address, mask) == eResult::success)
+		{
+			return eResult::success;
+		}
+
+		/// realloc and try again
+		eResult result = realloc();
+		if (result != eResult::success)
+		{
+			return result;
+		}
+
+		return pointer->remove(stats, ip_address, mask);
+	}
+
+	void clear()
+	{
+		pointer->clear();
+		stats.extended_chunks_count = 0;
+		stats.max_used_chunk_id = 0;
+		stats.free_chunk_cache.flags = 0;
 	}
 
 	void limits(common::limit::limits& limits) const

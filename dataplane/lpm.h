@@ -129,12 +129,9 @@ public:
 		                   rootChunk);
 	}
 
-	void clear(stats_t& stats)
+	void clear()
 	{
 		memset(&rootChunk.entries[0], 0, sizeof(rootChunk.entries));
-		stats.extended_chunks_count = 0;
-		stats.max_used_chunk_id = 0;
-		stats.free_chunk_cache.flags = 0;
 	}
 
 	inline void lookup(const uint32_t* ipAddresses,
@@ -636,15 +633,62 @@ protected:
 
 //
 
-template<uint32_t TExtendedSize>
 class lpm6_8x16bit_atomic
 {
 public:
+	constexpr static uint64_t extended_chunks_size_min = 32;
+
+	union tEntry
+	{
+		struct
+		{
+			uint8_t flags : 8;
+			union
+			{
+				uint32_t valueId : 24;
+				uint32_t extendedChunkId : 24;
+			} __attribute__((__packed__));
+		} __attribute__((__packed__));
+
+		uint32_t atomic;
+	} __attribute__((__packed__));
+
+	static_assert(sizeof(tEntry) == 4, "invalid size of tEntry");
+
+	struct stats_t
+	{
+		uint64_t extended_chunks_count;
+		uint64_t extended_chunks_size;
+		uint32_t max_used_chunk_id;
+		tEntry free_chunk_cache;
+	};
+
+	static uint64_t calculate_sizeof(const uint64_t extended_chunks_size)
+	{
+		if (!extended_chunks_size)
+		{
+			YANET_LOG_ERROR("wrong extended_chunks_size: %lu\n", extended_chunks_size);
+			return 0;
+		}
+
+		return sizeof(lpm6_8x16bit_atomic) + extended_chunks_size * sizeof(tChunk);
+	}
+
+public:
 	lpm6_8x16bit_atomic()
 	{
-		extendedChunksCount = 0;
-		maxUsedChunkId = 0;
-		freeChunkCache.flags = 0;
+	}
+
+	lpm6_8x16bit_atomic(const stats_t& stats,
+	                    const lpm6_8x16bit_atomic& second) :
+	        rootChunk(second.rootChunk)
+	{
+		for (uint64_t chunk_i = 0;
+		     chunk_i < stats.extended_chunks_count;
+		     chunk_i++)
+		{
+			extendedChunks[chunk_i] = second.extendedChunks[chunk_i];
+		}
 	}
 
 	static std::array<uint8_t, 16> createMask(uint8_t ones)
@@ -667,7 +711,8 @@ public:
 	}
 
 	/// Insertion order matters!
-	eResult insert(const std::array<uint8_t, 16>& ipv6Address,
+	eResult insert(stats_t& stats,
+	               const std::array<uint8_t, 16>& ipv6Address,
 	               const uint8_t& mask,
 	               const uint32_t& valueId,
 	               bool* needWait = nullptr)
@@ -684,7 +729,8 @@ public:
 			*needWait = false;
 		}
 
-		return insertStep(ipv6Address,
+		return insertStep(stats,
+		                  ipv6Address,
 		                  mask,
 		                  valueId,
 		                  needWait,
@@ -692,7 +738,8 @@ public:
 		                  rootChunk);
 	}
 
-	eResult insert(const std::array<uint8_t, 16>& ipv6Address,
+	eResult insert(stats_t& stats,
+	               const std::array<uint8_t, 16>& ipv6Address,
 	               const std::array<uint8_t, 16>& mask,
 	               const uint32_t& valueId)
 	{
@@ -702,7 +749,8 @@ public:
 			return eResult::invalidArguments;
 		}
 
-		return insertStep(ipv6Address,
+		return insertStep(stats,
+		                  ipv6Address,
 		                  mask,
 		                  valueId,
 		                  0,
@@ -710,7 +758,8 @@ public:
 		                  rootChunk);
 	}
 
-	eResult remove(const std::array<uint8_t, 16>& ipv6Address,
+	eResult remove(stats_t& stats,
+	               const std::array<uint8_t, 16>& ipv6Address,
 	               const uint8_t& mask,
 	               bool* needWait = nullptr)
 	{
@@ -725,25 +774,24 @@ public:
 			*needWait = false;
 		}
 
-		return removeStep(ipv6Address,
+		return removeStep(stats,
+		                  ipv6Address,
 		                  mask,
 		                  needWait,
 		                  0,
 		                  rootChunk);
 	}
 
-	eResult remove(const std::array<uint8_t, 16>& ipv6Address,
+	eResult remove(stats_t& stats,
+	               const std::array<uint8_t, 16>& ipv6Address,
 	               const std::array<uint8_t, 16>& mask)
 	{
-		return removeStep(ipv6Address, mask, 0, false, rootChunk);
+		return removeStep(stats, ipv6Address, mask, 0, false, rootChunk);
 	}
 
 	void clear()
 	{
 		this->rootChunk = {};
-		extendedChunksCount = 0;
-		maxUsedChunkId = 0;
-		freeChunkCache.flags = 0;
 	}
 
 	inline void lookup(const ipv6_address_t* ipv6Addresses,
@@ -911,42 +959,10 @@ public:
 		return false;
 	}
 
-	struct tStats
-	{
-		uint64_t extendedChunksCount;
-	};
-
-	tStats getStats() const
-	{
-		tStats result;
-		memset(&result, 0, sizeof(result));
-
-		result.extendedChunksCount = extendedChunksCount;
-
-		return result;
-	}
-
 protected:
 	constexpr static uint8_t flagExtended = 1 << 0;
 	constexpr static uint8_t flagValid = 1 << 1;
 	constexpr static uint8_t flagExtendedChunkOccupied = 1 << 7;
-
-	union tEntry
-	{
-		struct
-		{
-			uint8_t flags : 8;
-			union
-			{
-				uint32_t valueId : 24;
-				uint32_t extendedChunkId : 24;
-			} __attribute__((__packed__));
-		} __attribute__((__packed__));
-
-		uint32_t atomic;
-	} __attribute__((__packed__));
-
-	static_assert(sizeof(tEntry) == 4, "invalid size of tEntry");
 
 	struct tChunk
 	{
@@ -961,39 +977,41 @@ protected:
 	} __attribute__((__packed__));
 
 protected:
-	uint32_t extendedChunksCount;
-	tEntry freeChunkCache;
-
-	bool newExtendedChunk(uint32_t& extendedChunkId, uint16_t ownerMaskHextet)
+	bool newExtendedChunk(stats_t& stats, uint32_t& extendedChunkId, uint16_t ownerMaskHextet)
 	{
-		if (freeChunkCache.flags & flagExtended)
+		printf("XXX:NEW\n");
+		if (stats.free_chunk_cache.flags & flagExtended)
 		{
-			extendedChunkId = freeChunkCache.extendedChunkId;
+			printf("XXX:NEW.flag\n");
+			extendedChunkId = stats.free_chunk_cache.extendedChunkId;
 			tChunk& extendedChunk = extendedChunks[extendedChunkId];
-			freeChunkCache.flags = extendedChunk.entries[0].flags;
-			freeChunkCache.extendedChunkId = extendedChunk.entries[0].extendedChunkId;
+			stats.free_chunk_cache.flags = extendedChunk.entries[0].flags;
+			stats.free_chunk_cache.extendedChunkId = extendedChunk.entries[0].extendedChunkId;
 			memset(&extendedChunk.entries[0], 0, sizeof(extendedChunk.entries));
 			extendedChunk.entries[0].flags |= flagExtendedChunkOccupied;
 			extendedChunk.ownerMaskHextet = ownerMaskHextet;
-			++extendedChunksCount;
+			++stats.extended_chunks_count;
 			return true;
 		}
-		else if (maxUsedChunkId < TExtendedSize)
+		else if (stats.max_used_chunk_id < stats.extended_chunks_size)
 		{
-			extendedChunkId = maxUsedChunkId++;
+			printf("XXX:NEW. %u of %lu\n",
+			       stats.max_used_chunk_id,
+			       stats.extended_chunks_size);
+			extendedChunkId = stats.max_used_chunk_id++;
 
 			tChunk& extendedChunk = extendedChunks[extendedChunkId];
 			memset(&extendedChunk.entries[0], 0, sizeof(extendedChunk.entries));
 			extendedChunk.entries[0].flags |= flagExtendedChunkOccupied;
 			extendedChunk.ownerMaskHextet = ownerMaskHextet;
-			++extendedChunksCount;
+			++stats.extended_chunks_count;
 			return true;
 		}
 
 		return false;
 	}
 
-	void freeExtendedChunk(const uint32_t extendedChunkId)
+	void freeExtendedChunk(stats_t& stats, const uint32_t extendedChunkId)
 	{
 		tChunk& extendedChunk = extendedChunks[extendedChunkId];
 		if (!(extendedChunk.entries[0].flags & flagExtendedChunkOccupied))
@@ -1007,16 +1025,16 @@ protected:
 		{
 			if (extendedChunk.entries[entry_i].flags & flagExtended)
 			{
-				freeExtendedChunk(extendedChunk.entries[entry_i].extendedChunkId);
+				freeExtendedChunk(stats, extendedChunk.entries[entry_i].extendedChunkId);
 			}
 		}
 
-		extendedChunk.entries[0].flags = freeChunkCache.flags;
-		extendedChunk.entries[0].extendedChunkId = freeChunkCache.extendedChunkId;
+		extendedChunk.entries[0].flags = stats.free_chunk_cache.flags;
+		extendedChunk.entries[0].extendedChunkId = stats.free_chunk_cache.extendedChunkId;
 
-		freeChunkCache.flags = flagExtended;
-		freeChunkCache.extendedChunkId = extendedChunkId;
-		--extendedChunksCount;
+		stats.free_chunk_cache.flags = flagExtended;
+		stats.free_chunk_cache.extendedChunkId = extendedChunkId;
+		--stats.extended_chunks_count;
 	}
 
 	static void updateEntry(tEntry& entry,
@@ -1080,7 +1098,8 @@ protected:
 	}
 
 	// todo: reuse common::ipv6_network
-	eResult insertStep(const std::array<uint8_t, 16>& ipv6Address,
+	eResult insertStep(stats_t& stats,
+	                   const std::array<uint8_t, 16>& ipv6Address,
 	                   const std::array<uint8_t, 16>& mask,
 	                   const uint32_t& valueId,
 	                   const unsigned int& step,
@@ -1109,12 +1128,12 @@ protected:
 		auto freeAllocatedExtendedChunks = [&]() {
 			if (extChunkId != lpmValueIdInvalid)
 			{
-				freeExtendedChunk(extChunkId);
+				freeExtendedChunk(stats, extChunkId);
 			}
 
 			for (auto it : nextValuedChunkIds)
 			{
-				freeExtendedChunk(it.second);
+				freeExtendedChunk(stats, it.second);
 			}
 		};
 
@@ -1135,7 +1154,7 @@ protected:
 						if (copyChunk || (~nextChunk.ownerMaskHextet & maskHextet))
 						{
 							uint32_t newExtendedChunkId;
-							if (!newExtendedChunk(newExtendedChunkId, maskHextet))
+							if (!newExtendedChunk(stats, newExtendedChunkId, maskHextet))
 							{
 								freeAllocatedExtendedChunks();
 								return eResult::isFull;
@@ -1166,7 +1185,7 @@ protected:
 					auto it = nextValuedChunkIds.find(valueId);
 					if (it == nextValuedChunkIds.end())
 					{
-						if (!newExtendedChunk(nextValuedChunkId, maskHextet))
+						if (!newExtendedChunk(stats, nextValuedChunkId, maskHextet))
 						{
 							freeAllocatedExtendedChunks();
 							return eResult::isFull;
@@ -1192,7 +1211,7 @@ protected:
 				if (extChunkId == lpmValueIdInvalid)
 				{
 					// No chunk was allocated before, so allocate it.
-					if (!newExtendedChunk(extChunkId, maskHextet))
+					if (!newExtendedChunk(stats, extChunkId, maskHextet))
 					{
 						freeAllocatedExtendedChunks();
 						return eResult::isFull;
@@ -1209,7 +1228,7 @@ protected:
 		for (const auto& it : nextValuedChunkIds)
 		{
 			auto chunkId = it.second;
-			eResult result = insertStep(ipv6Address, mask, valueId, step + 1, copyChunk, extendedChunks[chunkId]);
+			eResult result = insertStep(stats, ipv6Address, mask, valueId, step + 1, copyChunk, extendedChunks[chunkId]);
 			if (result != eResult::success)
 			{
 				freeAllocatedExtendedChunks();
@@ -1219,7 +1238,7 @@ protected:
 		for (const auto& it : nextExtendedChunkIds)
 		{
 			auto chunkId = it.second;
-			eResult result = insertStep(ipv6Address, mask, valueId, step + 1, copyChunk || (it.first != chunkId), extendedChunks[chunkId]);
+			eResult result = insertStep(stats, ipv6Address, mask, valueId, step + 1, copyChunk || (it.first != chunkId), extendedChunks[chunkId]);
 			if (result != eResult::success)
 			{
 				freeAllocatedExtendedChunks();
@@ -1246,7 +1265,7 @@ protected:
 						updateEntry(chunk.entries[entry_i], flagValid, valueId);
 					}
 				}
-				freeExtendedChunk(chunkId);
+				freeExtendedChunk(stats, chunkId);
 			}
 		}
 
@@ -1254,7 +1273,8 @@ protected:
 	}
 
 	eResult
-	insertStep(const std::array<uint8_t, 16>& ipv6Address,
+	insertStep(stats_t& stats,
+	           const std::array<uint8_t, 16>& ipv6Address,
 	           const uint8_t& mask,
 	           const uint32_t& valueId,
 	           bool* needWait,
@@ -1271,7 +1291,8 @@ protected:
 
 				uint32_t extendedChunkId = chunk.entries[entry_i].extendedChunkId;
 
-				eResult result = insertStep(ipv6Address,
+				eResult result = insertStep(stats,
+				                            ipv6Address,
 				                            mask - 16,
 				                            valueId,
 				                            needWait,
@@ -1300,7 +1321,7 @@ protected:
 					            flagValid,
 					            valueId);
 
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 
 					if (needWait)
 					{
@@ -1321,7 +1342,7 @@ protected:
 				}
 
 				uint32_t extendedChunkId;
-				if (!newExtendedChunk(extendedChunkId, 0xffff))
+				if (!newExtendedChunk(stats, extendedChunkId, 0xffff))
 				{
 					YADECAP_LOG_WARNING("lpm6 is full\n");
 					return eResult::isFull;
@@ -1330,7 +1351,8 @@ protected:
 				updateAllEntries(extendedChunks[extendedChunkId],
 				                 chunk.entries[entry_i]);
 
-				eResult result = insertStep(ipv6Address,
+				eResult result = insertStep(stats,
+				                            ipv6Address,
 				                            mask - 16,
 				                            valueId,
 				                            needWait,
@@ -1338,7 +1360,7 @@ protected:
 				                            extendedChunks[extendedChunkId]);
 				if (result != eResult::success)
 				{
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 					return result;
 				}
 
@@ -1367,7 +1389,7 @@ protected:
 					            flagValid,
 					            valueId);
 
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 
 					if (needWait)
 					{
@@ -1388,7 +1410,8 @@ protected:
 		}
 	}
 
-	eResult removeStep(const std::array<uint8_t, 16>& ipv6Address,
+	eResult removeStep(stats_t& stats,
+	                   const std::array<uint8_t, 16>& ipv6Address,
 	                   const std::array<uint8_t, 16>& mask,
 	                   const unsigned int& step,
 	                   const bool& copyChunk,
@@ -1406,7 +1429,7 @@ protected:
 				if (chunk.entries[entry_i].flags & flagExtended)
 				{
 					uint32_t extendedChunkId = chunk.entries[entry_i].extendedChunkId;
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 				}
 				updateEntry(chunk.entries[entry_i], 0, 0);
 			}
@@ -1419,12 +1442,12 @@ protected:
 		auto freeAllocatedExtendedChunks = [&]() {
 			if (extChunkId != lpmValueIdInvalid)
 			{
-				freeExtendedChunk(extChunkId);
+				freeExtendedChunk(stats, extChunkId);
 			}
 
 			for (auto it : nextValuedChunkIds)
 			{
-				freeExtendedChunk(it.second);
+				freeExtendedChunk(stats, it.second);
 			}
 		};
 
@@ -1443,7 +1466,7 @@ protected:
 					if (copyChunk || (~nextChunk.ownerMaskHextet & maskHextet))
 					{
 						uint32_t newExtendedChunkId;
-						if (!newExtendedChunk(newExtendedChunkId, maskHextet))
+						if (!newExtendedChunk(stats, newExtendedChunkId, maskHextet))
 						{
 							freeAllocatedExtendedChunks();
 							return eResult::isFull;
@@ -1471,7 +1494,7 @@ protected:
 				if (nextValuedChunkIds.count(valueId) == 0)
 				{
 					uint32_t nextExtendedChunkId;
-					if (!newExtendedChunk(nextExtendedChunkId, maskHextet))
+					if (!newExtendedChunk(stats, nextExtendedChunkId, maskHextet))
 					{
 						freeAllocatedExtendedChunks();
 						return eResult::isFull;
@@ -1493,7 +1516,7 @@ protected:
 		for (const auto& it : nextValuedChunkIds)
 		{
 			auto chunkId = it.second;
-			eResult result = removeStep(ipv6Address, mask, step + 1, copyChunk, extendedChunks[chunkId]);
+			eResult result = removeStep(stats, ipv6Address, mask, step + 1, copyChunk, extendedChunks[chunkId]);
 			if (result != eResult::success)
 			{
 				freeAllocatedExtendedChunks();
@@ -1503,7 +1526,7 @@ protected:
 		for (const auto& it : nextExtendedChunkIds)
 		{
 			auto chunkId = it.second;
-			eResult result = removeStep(ipv6Address, mask, step + 1, copyChunk || (it.first != it.second), extendedChunks[chunkId]);
+			eResult result = removeStep(stats, ipv6Address, mask, step + 1, copyChunk || (it.first != it.second), extendedChunks[chunkId]);
 			if (result != eResult::success)
 			{
 				freeAllocatedExtendedChunks();
@@ -1529,14 +1552,15 @@ protected:
 						updateEntry(chunk.entries[entry_i], 0, 0);
 					}
 				}
-				freeExtendedChunk(chunkId);
+				freeExtendedChunk(stats, chunkId);
 			}
 		}
 
 		return eResult::success;
 	}
 
-	eResult removeStep(const std::array<uint8_t, 16>& ipv6Address,
+	eResult removeStep(stats_t& stats,
+	                   const std::array<uint8_t, 16>& ipv6Address,
 	                   const uint8_t& mask,
 	                   bool* needWait,
 	                   const unsigned int& step,
@@ -1552,7 +1576,8 @@ protected:
 
 				uint32_t extendedChunkId = chunk.entries[entry_i].extendedChunkId;
 
-				eResult result = removeStep(ipv6Address,
+				eResult result = removeStep(stats,
+				                            ipv6Address,
 				                            mask - 16,
 				                            needWait,
 				                            step + 1,
@@ -1579,7 +1604,7 @@ protected:
 					            0,
 					            0);
 
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 
 					if (needWait)
 					{
@@ -1594,7 +1619,7 @@ protected:
 				/// valid
 
 				uint32_t extendedChunkId;
-				if (!newExtendedChunk(extendedChunkId, 0xffff))
+				if (!newExtendedChunk(stats, extendedChunkId, 0xffff))
 				{
 					YADECAP_LOG_WARNING("lpm6 is full\n");
 					return eResult::isFull;
@@ -1603,14 +1628,15 @@ protected:
 				updateAllEntries(extendedChunks[extendedChunkId],
 				                 chunk.entries[entry_i]);
 
-				eResult result = removeStep(ipv6Address,
+				eResult result = removeStep(stats,
+				                            ipv6Address,
 				                            mask - 16,
 				                            needWait,
 				                            step + 1,
 				                            extendedChunks[extendedChunkId]);
 				if (result != eResult::success)
 				{
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 					return result;
 				}
 
@@ -1648,7 +1674,7 @@ protected:
 					            0,
 					            0);
 
-					freeExtendedChunk(extendedChunkId);
+					freeExtendedChunk(stats, extendedChunkId);
 
 					if (needWait)
 					{
@@ -1668,9 +1694,8 @@ protected:
 	}
 
 public:
-	uint32_t maxUsedChunkId;
 	tChunk rootChunk;
-	tChunk extendedChunks[TExtendedSize];
+	tChunk extendedChunks[];
 } __rte_aligned(RTE_CACHE_LINE_SIZE);
 
 //

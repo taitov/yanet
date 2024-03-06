@@ -66,18 +66,6 @@ public:
 	{
 	}
 
-	lpm4_24bit_8bit_atomic(const stats_t& stats,
-	                       const lpm4_24bit_8bit_atomic& second) :
-	        rootChunk(second.rootChunk)
-	{
-		for (uint64_t chunk_i = 0;
-		     chunk_i < stats.extended_chunks_count;
-		     chunk_i++)
-		{
-			extendedChunks[chunk_i] = second.extendedChunks[chunk_i];
-		}
-	}
-
 	eResult insert(stats_t& stats,
 	               const uint32_t& ipAddress,
 	               const uint8_t& mask,
@@ -132,6 +120,16 @@ public:
 	void clear()
 	{
 		memset(&rootChunk.entries[0], 0, sizeof(rootChunk.entries));
+	}
+
+	eResult copy(stats_t& stats,
+	             const stats_t& from_stats,
+	             const lpm4_24bit_8bit_atomic& second)
+	{
+		std::vector<unsigned int> remap_chunks;
+		remap_chunks.resize(from_stats.extended_chunks_size, 0);
+
+		return copy_root_chunk(stats, remap_chunks, second);
 	}
 
 	inline void lookup(const uint32_t* ipAddresses,
@@ -626,6 +624,62 @@ protected:
 		return eResult::success;
 	}
 
+	eResult copy_root_chunk(stats_t& stats,
+	                        std::vector<unsigned int>& remap_chunks,
+	                        const lpm4_24bit_8bit_atomic& second)
+	{
+		const auto& from_chunk = second.rootChunk;
+
+		memcpy(rootChunk.entries, from_chunk.entries, sizeof(from_chunk.entries));
+		std::vector<std::tuple<unsigned int, unsigned int>> nexts;
+
+		for (uint32_t i = 0;
+		     i < (1u << 24);
+		     i++)
+		{
+			auto& chunk_value = rootChunk.entries[i];
+
+			if (chunk_value.flags & flagExtended)
+			{
+				auto& chunk_id = remap_chunks[chunk_value.extendedChunkId];
+				if (!chunk_id)
+				{
+					if (!newExtendedChunk(stats, chunk_id))
+					{
+						return eResult::isFull;
+					}
+
+					nexts.emplace_back((uint32_t)chunk_value.extendedChunkId, chunk_id);
+				}
+
+				chunk_value.extendedChunkId = chunk_id;
+			}
+		}
+
+		for (const auto& [next_from_chunk_id, next_chunk_id] : nexts)
+		{
+			auto result = copy_extended_chunk(second, next_from_chunk_id, next_chunk_id);
+			if (result != eResult::success)
+			{
+				return result;
+			}
+		}
+
+		return eResult::success;
+	}
+
+	eResult copy_extended_chunk(const lpm4_24bit_8bit_atomic& second,
+	                            const unsigned int from_chunk_id,
+	                            const unsigned int chunk_id)
+	{
+		auto& chunk = extendedChunks[chunk_id];
+		const auto& from_chunk = second.extendedChunks[from_chunk_id];
+
+		memcpy(chunk.entries, from_chunk.entries, sizeof(from_chunk.entries));
+
+		return eResult::success;
+	}
+
 protected:
 	tChunk24 rootChunk;
 	tChunk8 extendedChunks[];
@@ -756,11 +810,11 @@ public:
 	}
 
 	eResult copy(stats_t& stats,
-	             const lpm6_8x16bit_atomic& second,
-	             const uint64_t from_size)
+	             const stats_t& from_stats,
+	             const lpm6_8x16bit_atomic& second)
 	{
 		std::vector<unsigned int> remap_chunks;
-		remap_chunks.resize(from_size, 0);
+		remap_chunks.resize(from_stats.extended_chunks_size, 0);
 
 		return copy_root_chunk(stats, remap_chunks, second);
 	}

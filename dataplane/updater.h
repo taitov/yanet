@@ -60,37 +60,33 @@ public:
 
 	eResult init()
 	{
-		stats.extended_chunks_size = object_type::extended_chunks_size_min;
+		return realloc(2 * object_type::extended_chunks_size_min);
+	}
 
-		pointer = memory_manager->create<object_type>(name.data(),
-		                                              socket_id,
-		                                              object_type::calculate_sizeof(stats.extended_chunks_size));
-		if (pointer == nullptr)
+	eResult realloc(const uint64_t extended_chunks_size)
+	{
+		auto* next_pointer = memory_manager->create<object_type>(name.data(),
+		                                                         socket_id,
+		                                                         object_type::calculate_sizeof(extended_chunks_size));
+		if (next_pointer == nullptr)
 		{
 			return eResult::errorAllocatingMemory;
 		}
 
-		return eResult::success;
-	}
+		object_type::stats_t next_stats;
+		next_stats.extended_chunks_count = 0;
+		next_stats.extended_chunks_size = extended_chunks_size;
+		next_stats.max_used_chunk_id = 0;
+		next_stats.free_chunk_cache.flags = 0;
 
-	eResult realloc()
-	{
-		stats.extended_chunks_size *= 2;
-
+		if (pointer)
 		{
-			auto* next_pointer = memory_manager->create<object_type>(name.data(),
-			                                                         socket_id,
-			                                                         object_type::calculate_sizeof(stats.extended_chunks_size),
-			                                                         stats,
-			                                                         *pointer);
-			if (next_pointer == nullptr)
-			{
-				return eResult::errorAllocatingMemory;
-			}
-
+			next_pointer->copy(next_stats, stats, *pointer);
 			memory_manager->destroy(pointer);
-			pointer = next_pointer;
 		}
+
+		stats = next_stats;
+		pointer = next_pointer;
 
 		return eResult::success;
 	}
@@ -99,16 +95,13 @@ public:
 	               const uint8_t& mask,
 	               const uint32_t& value_id)
 	{
-		if (pointer->insert(stats, ip_address, mask, value_id) == eResult::success)
+		if (stats.extended_chunks_size - stats.extended_chunks_count < object_type::extended_chunks_size_min)
 		{
-			return eResult::success;
-		}
-
-		/// realloc and try again
-		eResult result = realloc();
-		if (result != eResult::success)
-		{
-			return result;
+			eResult result = realloc(stats.extended_chunks_size * 2);
+			if (result != eResult::success)
+			{
+				return result;
+			}
 		}
 
 		return pointer->insert(stats, ip_address, mask, value_id);
@@ -117,28 +110,44 @@ public:
 	eResult remove(const uint32_t& ip_address,
 	               const uint8_t& mask)
 	{
-		if (pointer->remove(stats, ip_address, mask) == eResult::success)
+		eResult result = eResult::success;
+		if (stats.extended_chunks_size - stats.extended_chunks_count < object_type::extended_chunks_size_min)
 		{
-			return eResult::success;
+			result = realloc(stats.extended_chunks_size * 2);
+			if (result != eResult::success)
+			{
+				return result;
+			}
 		}
 
-		/// realloc and try again
-		eResult result = realloc();
+		result = pointer->remove(stats, ip_address, mask);
 		if (result != eResult::success)
 		{
 			return result;
 		}
 
-		return pointer->remove(stats, ip_address, mask);
+		if (stats.extended_chunks_size > 2 * object_type::extended_chunks_size_min &&
+		    stats.extended_chunks_count < stats.extended_chunks_size / 4)
+		{
+			result = realloc(stats.extended_chunks_size / 2);
+			if (result != eResult::success)
+			{
+				return result;
+			}
+		}
+
+		return result;
 	}
 
 	eResult clear()
 	{
-		pointer->clear();
-		stats.extended_chunks_count = 0;
-		stats.max_used_chunk_id = 0;
-		stats.free_chunk_cache.flags = 0;
-		return eResult::success;
+		if (pointer)
+		{
+			memory_manager->destroy(pointer);
+			pointer = nullptr;
+		}
+
+		return realloc(2 * object_type::extended_chunks_size_min);
 	}
 
 	void limits(common::limit::limits& limits) const
@@ -182,31 +191,19 @@ public:
 	        socket_id(socket_id),
 	        pointer(nullptr)
 	{
+		stats.extended_chunks_count = 0;
 		stats.extended_chunks_size = 0;
+		stats.max_used_chunk_id = 0;
+		stats.free_chunk_cache.flags = 0;
 	}
 
 	eResult init()
 	{
-		stats.extended_chunks_count = 0;
-		stats.extended_chunks_size = 2 * object_type::extended_chunks_size_min;
-		stats.max_used_chunk_id = 0;
-		stats.free_chunk_cache.flags = 0;
-
-		pointer = memory_manager->create<object_type>(name.data(),
-		                                              socket_id,
-		                                              object_type::calculate_sizeof(stats.extended_chunks_size));
-		if (pointer == nullptr)
-		{
-			return eResult::errorAllocatingMemory;
-		}
-
-		return eResult::success;
+		return realloc(2 * object_type::extended_chunks_size_min);
 	}
 
 	eResult realloc(const uint64_t extended_chunks_size)
 	{
-		printf("XXX:REALLOC: %lu of %lu -> %lu\n", stats.extended_chunks_count, stats.extended_chunks_size, extended_chunks_size);
-
 		auto* next_pointer = memory_manager->create<object_type>(name.data(),
 		                                                         socket_id,
 		                                                         object_type::calculate_sizeof(extended_chunks_size));
@@ -215,15 +212,19 @@ public:
 			return eResult::errorAllocatingMemory;
 		}
 
-		uint64_t extended_chunks_size_prev = stats.extended_chunks_size;
+		object_type::stats_t next_stats;
+		next_stats.extended_chunks_count = 0;
+		next_stats.extended_chunks_size = extended_chunks_size;
+		next_stats.max_used_chunk_id = 0;
+		next_stats.free_chunk_cache.flags = 0;
 
-		stats.extended_chunks_count = 0;
-		stats.extended_chunks_size = extended_chunks_size;
-		stats.max_used_chunk_id = 0;
-		stats.free_chunk_cache.flags = 0;
-		next_pointer->copy(stats, *pointer, extended_chunks_size_prev);
+		if (pointer)
+		{
+			next_pointer->copy(next_stats, stats, *pointer);
+			memory_manager->destroy(pointer);
+		}
 
-		memory_manager->destroy(pointer);
+		stats = next_stats;
 		pointer = next_pointer;
 
 		return eResult::success;
@@ -279,23 +280,13 @@ public:
 
 	eResult clear()
 	{
-		printf("XXX:CLEAR\n");
-		memory_manager->destroy(pointer);
-
-		stats.extended_chunks_count = 0;
-		stats.extended_chunks_size = 2 * object_type::extended_chunks_size_min;
-		stats.max_used_chunk_id = 0;
-		stats.free_chunk_cache.flags = 0;
-
-		pointer = memory_manager->create<object_type>(name.data(),
-		                                              socket_id,
-		                                              object_type::calculate_sizeof(stats.extended_chunks_size));
-		if (pointer == nullptr)
+		if (pointer)
 		{
-			return eResult::errorAllocatingMemory;
+			memory_manager->destroy(pointer);
+			pointer = nullptr;
 		}
 
-		return eResult::success;
+		return realloc(2 * object_type::extended_chunks_size_min);
 	}
 
 	void limits(common::limit::limits& limits) const

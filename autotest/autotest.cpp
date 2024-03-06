@@ -808,6 +808,23 @@ bool tAutotest::step_ipv6Update(const YAML::Node& yamlStep)
 	return true;
 }
 
+bool tAutotest::step_ipv6Remove(const YAML::Node& yamlStep)
+{
+	if (yamlStep.IsScalar())
+	{
+		convert_ipv6Remove(yamlStep.as<std::string>());
+	}
+	else
+	{
+		for (const auto& yamlRoute : yamlStep)
+		{
+			convert_ipv6Remove(yamlRoute.as<std::string>());
+		}
+	}
+
+	return true;
+}
+
 bool tAutotest::step_ipv6LabelledUpdate(const YAML::Node& yamlStep)
 {
 	if (yamlStep.IsScalar())
@@ -1344,6 +1361,12 @@ void tAutotest::mainThread()
 
 					result = step_ipv6Update(yamlStep["ipv6Update"]);
 				}
+				else if (yamlStep["ipv6Remove"])
+				{
+					YANET_LOG_DEBUG("step: ipv6Remove\n");
+
+					result = step_ipv6Remove(yamlStep["ipv6Remove"]);
+				}
 				else if (yamlStep["ipv6LabelledUpdate"])
 				{
 					YANET_LOG_DEBUG("step: ipv6LabelledUpdate\n");
@@ -1572,10 +1595,28 @@ void tAutotest::convert_ipv6Update(const std::string& string)
 	{
 		common::icp::rib_update::insert request = {"autotest", "default", YANET_RIB_PRIORITY_DEFAULT, {}};
 		std::get<3>(request)[attribute_default]["ipv6"][nexthop].emplace_back(prefix,
-		                                                                      nexthop,
+		                                                                      std::to_string(pathInformations_ipv6Update[prefix].size()),
 		                                                                      std::vector<uint32_t>());
 		controlPlane.rib_update({request});
+
+		pathInformations_ipv6Update[prefix].emplace(std::to_string(pathInformations_ipv6Update[prefix].size()));
 	}
+
+	controlPlane.rib_flush();
+}
+
+void tAutotest::convert_ipv6Remove(const std::string& string)
+{
+	for (const auto& pathInformation : pathInformations_ipv6Update[string])
+	{
+		common::icp::rib_update::remove request = {"autotest", "default", YANET_RIB_PRIORITY_DEFAULT, {}};
+		std::get<3>(request)[{}]["ipv6"].emplace_back(ip_prefix_t(string),
+		                                              pathInformation,
+		                                              std::vector<uint32_t>());
+		controlPlane.rib_update({request});
+	}
+
+	pathInformations_ipv6Update[string].clear();
 
 	controlPlane.rib_flush();
 }

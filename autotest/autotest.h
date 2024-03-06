@@ -47,6 +47,7 @@ protected:
 	bool step_ipv4LabelledUpdate(const YAML::Node& yamlStep);
 	bool step_ipv4LabelledRemove(const YAML::Node& yamlStep);
 	bool step_ipv6Update(const YAML::Node& yamlStep);
+	bool step_ipv6Remove(const YAML::Node& yamlStep);
 	bool step_ipv6LabelledUpdate(const YAML::Node& yamlStep);
 	bool step_sendPackets(const YAML::Node& yamlStep, const std::string& path);
 	bool step_checkCounters(const YAML::Node& yamlStep);
@@ -78,6 +79,7 @@ protected:
 	void convert_ipv4LabelledUpdate(const std::string& string);
 	void convert_ipv4LabelledRemove(const std::string& string);
 	void convert_ipv6Update(const std::string& string);
+	void convert_ipv6Remove(const std::string& string);
 	void convert_ipv6LabelledUpdate(const std::string& string);
 
 	int cli(const std::string& command);
@@ -113,7 +115,7 @@ protected:
 
 	std::map<ipv6_prefix_t,
 	         std::set<std::string>>
-	        pathInformations_ipv6Update; ///< @todo
+	        pathInformations_ipv6Update;
 
 	common::icp::loadConfig::request request;
 
